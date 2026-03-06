@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ਪੰਜਾਬੀ Hate Speech Detector</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500&family=Noto+Sans+Gurmukhi:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #13131a;
+    --surface2: #1c1c28;
+    --border: #2a2a3d;
+    --accent: #6c63ff;
+    --accent2: #ff6584;
+    --hate: #ff4d6d;
+    --safe: #06d6a0;
+    --text: #e8e8f0;
+    --muted: #6b6b8a;
+    --gold: #ffd166;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Syne', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+  body::before {
+    content:'';
+    position:fixed; inset:0;
+    background-image:
+      linear-gradient(rgba(108,99,255,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(108,99,255,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events:none; z-index:0;
+  }
+  .orb { position:fixed; border-radius:50%; filter:blur(100px); opacity:0.1; pointer-events:none; z-index:0; }
+  .orb1 { width:500px;height:500px;background:var(--accent);top:-150px;left:-100px;animation:f1 8s ease-in-out infinite; }
+  .orb2 { width:400px;height:400px;background:var(--accent2);bottom:-100px;right:-100px;animation:f2 10s ease-in-out infinite; }
+  @keyframes f1{0%,100%{transform:translate(0,0)}50%{transform:translate(30px,40px)}}
+  @keyframes f2{0%,100%{transform:translate(0,0)}50%{transform:translate(-30px,-20px)}}
+
+  header {
+    position:relative; z-index:10;
+    padding:20px 40px;
+    display:flex; align-items:center; justify-content:space-between;
+    border-bottom:1px solid var(--border);
+  }
+  .logo { display:flex; align-items:center; gap:12px; font-size:15px; font-weight:700; }
+  .logo-icon { width:36px;height:36px;background:linear-gradient(135deg,var(--accent),var(--accent2));border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:18px; }
+  .server-status { display:flex;align-items:center;gap:8px;font-size:12px;font-family:'JetBrains Mono',monospace;color:var(--muted); }
+  .status-dot { width:8px;height:8px;border-radius:50%;background:#555;transition:background 0.3s; }
+  .status-dot.online { background:var(--safe);box-shadow:0 0 8px var(--safe);animation:pulse 2s infinite; }
+  .status-dot.offline { background:var(--hate); }
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
+
+  .hero { position:relative;z-index:10;text-align:center;padding:70px 40px 50px; }
+  .hero-tag {
+    display:inline-flex;align-items:center;gap:8px;
+    padding:6px 16px;
+    background:rgba(255,213,102,0.1);border:1px solid rgba(255,213,102,0.25);
+    border-radius:20px;font-size:12px;font-family:'JetBrains Mono',monospace;
+    color:var(--gold);margin-bottom:24px;letter-spacing:0.08em;
+    animation:fadeDown 0.6s ease both;
+  }
+  h1 { font-size:clamp(2.2rem,5vw,4.5rem);font-weight:800;line-height:1.05;letter-spacing:-0.02em;margin-bottom:16px;animation:fadeDown 0.6s 0.1s ease both; }
+  h1 .hl { background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text; }
+  h1 .gur { font-family:'Noto Sans Gurmukhi',sans-serif;font-size:0.6em;display:block;color:var(--muted);-webkit-text-fill-color:var(--muted);margin-top:6px; }
+  .hero p { font-size:1rem;color:var(--muted);max-width:520px;margin:0 auto 36px;line-height:1.7;animation:fadeDown 0.6s 0.2s ease both; }
+
+  .stats { display:flex;justify-content:center;gap:36px;margin-bottom:50px;flex-wrap:wrap;animation:fadeDown 0.6s 0.3s ease both; }
+  .stat-num { font-size:1.8rem;font-weight:800;font-family:'JetBrains Mono',monospace;background:linear-gradient(135deg,var(--accent),var(--safe));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text; }
+  .stat-label { font-size:0.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.1em;margin-top:3px; }
+
+  .demo-wrap { position:relative;z-index:10;max-width:760px;margin:0 auto;padding:0 20px 70px;animation:fadeUp 0.7s 0.4s ease both; }
+  .card { background:var(--surface);border:1px solid var(--border);border-radius:20px;overflow:hidden;box-shadow:0 40px 80px rgba(0,0,0,0.5); }
+  .card-head { padding:18px 26px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;background:var(--surface2); }
+  .dots { display:flex;gap:6px; }
+  .dot { width:12px;height:12px;border-radius:50%; }
+  .dot:nth-child(1){background:#ff5f57}.dot:nth-child(2){background:#febc2e}.dot:nth-child(3){background:#28c840}
+  .card-title { font-size:13px;font-family:'JetBrains Mono',monospace;color:var(--muted);margin-left:6px; }
+  .card-body { padding:28px 26px; }
+
+  .input-label { font-size:11px;font-family:'JetBrains Mono',monospace;color:var(--muted);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:10px;display:flex;align-items:center;gap:6px; }
+  .input-label::before { content:'→';color:var(--accent); }
+  textarea {
+    width:100%;min-height:120px;background:var(--bg);
+    border:1px solid var(--border);border-radius:12px;
+    padding:16px 18px;color:var(--text);
+    font-family:'Noto Sans Gurmukhi','Syne',sans-serif;font-size:1.05rem;line-height:1.7;
+    resize:vertical;transition:border-color 0.2s,box-shadow 0.2s;outline:none;
+  }
+  textarea:focus { border-color:var(--accent);box-shadow:0 0 0 3px rgba(108,99,255,0.15); }
+  textarea::placeholder { color:var(--muted);font-size:0.9rem; }
+  .char-count { text-align:right;font-size:11px;font-family:'JetBrains Mono',monospace;color:var(--muted);margin-top:6px; }
+
+  .examples { margin-top:14px;display:flex;flex-wrap:wrap;gap:8px; }
+  .ex-label { font-size:11px;color:var(--muted);font-family:'JetBrains Mono',monospace;width:100%; }
+  .ex-btn { padding:5px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:20px;color:var(--muted);font-size:12px;font-family:'Noto Sans Gurmukhi',sans-serif;cursor:pointer;transition:all 0.2s;white-space:nowrap; }
+  .ex-btn:hover { border-color:var(--accent);color:var(--text);background:rgba(108,99,255,0.1); }
+  .ex-btn.h:hover { border-color:var(--hate);background:rgba(255,77,109,0.1);color:var(--hate); }
+  .ex-btn.s:hover { border-color:var(--safe);background:rgba(6,214,160,0.1);color:var(--safe); }
+
+  .btn-analyze {
+    width:100%;margin-top:18px;padding:15px;
+    background:linear-gradient(135deg,var(--accent),#8b83ff);
+    border:none;border-radius:12px;color:#fff;
+    font-family:'Syne',sans-serif;font-size:1rem;font-weight:700;letter-spacing:0.05em;
+    cursor:pointer;transition:all 0.2s;
+    display:flex;align-items:center;justify-content:center;gap:10px;
+  }
+  .btn-analyze:hover:not(:disabled) { transform:translateY(-2px);box-shadow:0 12px 30px rgba(108,99,255,0.4); }
+  .btn-analyze:disabled { opacity:0.6;cursor:not-allowed; }
+
+  .loading { display:none;align-items:center;gap:12px;padding:18px 0;color:var(--muted);font-size:13px;font-family:'JetBrains Mono',monospace; }
+  .loading.show { display:flex; }
+  .spinner { width:18px;height:18px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin 0.7s linear infinite; }
+  @keyframes spin{to{transform:rotate(360deg)}}
+
+  .result-area { display:none;margin-top:22px;animation:fadeUp 0.4s ease both; }
+  .result-area.show { display:block; }
+  .result-box { border-radius:14px;padding:22px 24px;border:1px solid;display:flex;align-items:flex-start;gap:18px; }
+  .result-box.hate { background:rgba(255,77,109,0.08);border-color:rgba(255,77,109,0.3); }
+  .result-box.safe { background:rgba(6,214,160,0.08);border-color:rgba(6,214,160,0.3); }
+  .result-icon { font-size:2.2rem;flex-shrink:0;animation:popIn 0.4s cubic-bezier(0.175,0.885,0.32,1.275) both; }
+  @keyframes popIn{from{transform:scale(0) rotate(-20deg)}to{transform:scale(1) rotate(0)}}
+  .result-label { font-size:1.3rem;font-weight:800;margin-bottom:5px; }
+  .result-box.hate .result-label { color:var(--hate); }
+  .result-box.safe .result-label { color:var(--safe); }
+  .result-desc { font-size:0.85rem;color:var(--muted);line-height:1.5;margin-bottom:14px; }
+  .conf-bar { background:var(--bg);border-radius:999px;height:5px;overflow:hidden;margin-bottom:6px; }
+  .conf-fill { height:100%;border-radius:999px;transition:width 1s cubic-bezier(0.4,0,0.2,1);width:0; }
+  .hate .conf-fill { background:linear-gradient(90deg,#ff4d6d,#ff8fa3); }
+  .safe .conf-fill { background:linear-gradient(90deg,#06d6a0,#80ffdb); }
+  .conf-labels { display:flex;justify-content:space-between;font-size:11px;font-family:'JetBrains Mono',monospace;color:var(--muted); }
+
+  .probs { margin-top:12px;display:flex;gap:12px; }
+  .prob-chip { flex:1;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px;text-align:center; }
+  .prob-chip .p-label { font-size:10px;color:var(--muted);font-family:'JetBrains Mono',monospace;text-transform:uppercase;margin-bottom:4px; }
+  .prob-chip .p-val { font-size:1.1rem;font-weight:700;font-family:'JetBrains Mono',monospace; }
+  .prob-chip.hate-chip .p-val { color:var(--hate); }
+  .prob-chip.safe-chip .p-val { color:var(--safe); }
+
+  .error-box { margin-top:16px;padding:14px 18px;background:rgba(255,77,109,0.08);border:1px solid rgba(255,77,109,0.3);border-radius:10px;font-size:13px;font-family:'JetBrains Mono',monospace;color:var(--hate);display:none; }
+  .error-box.show { display:block; }
+
+  .info-section { position:relative;z-index:10;max-width:760px;margin:0 auto;padding:0 20px 70px;display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px; }
+  .info-card { background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:22px;transition:all 0.2s; }
+  .info-card:hover { border-color:rgba(108,99,255,0.4);transform:translateY(-3px); }
+  .info-icon { font-size:1.6rem;margin-bottom:10px; }
+  .info-card h3 { font-size:0.85rem;font-weight:700;margin-bottom:7px; }
+  .info-card p { font-size:0.78rem;color:var(--muted);line-height:1.6; }
+  .info-card .val { font-family:'JetBrains Mono',monospace;font-size:1.4rem;font-weight:700;color:var(--accent);margin-bottom:3px; }
+
+  footer { position:relative;z-index:10;text-align:center;padding:28px;border-top:1px solid var(--border);color:var(--muted);font-size:12px;font-family:'JetBrains Mono',monospace; }
+  footer span { color:var(--accent); }
+
+  @keyframes fadeDown{from{opacity:0;transform:translateY(-20px)}to{opacity:1;transform:translateY(0)}}
+  @keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+</style>
+</head>
+<body>
+
+<div class="orb orb1"></div>
+<div class="orb orb2"></div>
+
+<header>
+  <div class="logo">
+    <div class="logo-icon">🛡️</div>
+    PunjabiGuard
+  </div>
+  <div class="server-status">
+    <div class="status-dot" id="statusDot"></div>
+    <span id="statusText">Checking server...</span>
+  </div>
+</header>
+
+<section class="hero">
+  <div class="hero-tag">🎓 BTech Final Year Project — NLP · MuRIL · Deep Learning</div>
+  <h1>
+    Punjabi Hate Speech
+    <span class="hl">Detector</span>
+    <span class="gur">ਪੰਜਾਬੀ ਨਫ਼ਰਤੀ ਭਾਸ਼ਣ ਖੋਜ ਪ੍ਰਣਾਲੀ</span>
+  </h1>
+  <p>Real-time hate speech detection in Punjabi (Gurmukhi script) powered by fine-tuned MuRIL transformer.</p>
+  <div class="stats">
+    <div class="stat"><div class="stat-num">97.6%</div><div class="stat-label">Accuracy</div></div>
+    <div class="stat"><div class="stat-num">0.976</div><div class="stat-label">F1 Score</div></div>
+    <div class="stat"><div class="stat-num">1,384</div><div class="stat-label">Dataset Size</div></div>
+    <div class="stat"><div class="stat-num">MuRIL</div><div class="stat-label">Model</div></div>
+  </div>
+</section>
+
+<div class="demo-wrap">
+  <div class="card">
+    <div class="card-head">
+      <div class="dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
+      <div class="card-title">muril_inference.py — LIVE DEMO</div>
+    </div>
+    <div class="card-body">
+
+      <div class="input-label">Enter Punjabi Text (Gurmukhi Script)</div>
+      <textarea id="inputText"
+        placeholder="ਇੱਥੇ ਪੰਜਾਬੀ ਟੈਕਸਟ ਲਿਖੋ...&#10;Type or paste Punjabi text here..."
+        oninput="updateCharCount(this)"></textarea>
+      <div class="char-count"><span id="charCount">0</span> / 1000 characters</div>
+
+      <div class="examples">
+        <div class="ex-label">// quick examples — click to try:</div>
+        <button class="ex-btn s" onclick="setEx('ਪੰਜਾਬ ਦੇ ਲੋਕ ਬਹੁਤ ਮਿਹਨਤੀ ਨੇ')">ਪੰਜਾਬ ਦੇ ਲੋਕ ਮਿਹਨਤੀ</button>
+        <button class="ex-btn s" onclick="setEx('ਲੋਹੜੀ ਦਾ ਤਿਉਹਾਰ ਸਾਨੂੰ ਇਕੱਠੇ ਕਰਦਾ')">ਲੋਹੜੀ ਦਾ ਤਿਉਹਾਰ</button>
+        <button class="ex-btn s" onclick="setEx('ਪੰਜਾਬੀ ਭਾਸ਼ਾ ਬਹੁਤ ਸੁੰਦਰ ਏ')">ਪੰਜਾਬੀ ਭਾਸ਼ਾ</button>
+        <button class="ex-btn h" onclick="setEx('ਤੈਨੂੰ ਦੇਖ ਕੇ ਉਲਟੀ ਆਉਂਦੀ ਏ')">ਉਲਟੀ ਆਉਂਦੀ ਏ</button>
+        <button class="ex-btn h" onclick="setEx('ਕੁੱਤੇ ਦੀ ਮੌਤ ਮਰੇਂਗਾ ਕਮੀਨੇ')">ਕੁੱਤੇ ਦੀ ਮੌਤ</button>
+        <button class="ex-btn" onclick="setEx('ਏਹ ਬੰਦਾ ਹਰ ਵਾਰ ਝੂਠ ਹੀ ਮਾਰਦਾ')">ਝੂਠ ਮਾਰਦਾ</button>
+      </div>
+
+      <button class="btn-analyze" onclick="analyze()" id="analyzeBtn">
+        <span id="btnIcon">🔍</span>
+        <span id="btnText">Analyze Text</span>
+      </button>
+
+      <div class="loading" id="loading">
+        <div class="spinner"></div>
+        <span id="loadingText">Sending to MuRIL model...</span>
+      </div>
+
+      <div class="error-box" id="errorBox"></div>
+
+      <div class="result-area" id="resultArea">
+        <div class="result-box" id="resultBox">
+          <div class="result-icon" id="rIcon"></div>
+          <div style="flex:1">
+            <div class="result-label" id="rLabel"></div>
+            <div class="result-desc" id="rDesc"></div>
+            <div class="conf-bar"><div class="conf-fill" id="confFill"></div></div>
+            <div class="conf-labels"><span>Confidence</span><span id="confText"></span></div>
+            <div class="probs">
+              <div class="prob-chip safe-chip">
+                <div class="p-label">Non-Hate</div>
+                <div class="p-val" id="probNH">-</div>
+              </div>
+              <div class="prob-chip hate-chip">
+                <div class="p-label">Hate</div>
+                <div class="p-val" id="probH">-</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<div class="info-section">
+  <div class="info-card">
+    <div class="info-icon">🤖</div>
+    <h3>Model</h3>
+    <p>Google MuRIL — BERT-based model pre-trained on 17 Indian languages including Punjabi (Gurmukhi).</p>
+  </div>
+  <div class="info-card">
+    <div class="info-icon">📊</div>
+    <div class="val">97.6%</div>
+    <h3>Test Accuracy</h3>
+    <p>Tested on 208 held-out samples. F1: 0.976, Precision: 0.976, Recall: 0.976.</p>
+  </div>
+  <div class="info-card">
+    <div class="info-icon">📁</div>
+    <div class="val">1,384</div>
+    <h3>Dataset</h3>
+    <p>631 hate + 753 non-hate Punjabi social media comments. Manually curated + AI augmented.</p>
+  </div>
+  <div class="info-card">
+    <div class="info-icon">⚙️</div>
+    <h3>Training</h3>
+    <p>4 epochs · LR 2e-5 · Batch 16 · AdamW · Fine-tuned on T4 GPU via Google Colab.</p>
+  </div>
+</div>
+
+<footer>
+  Built with <span>MuRIL + Flask + PyTorch</span> · BTech Final Year Project · 2026
+</footer>
+
+<script>
+  // ✅ Hugging Face Space ka permanent URL
+  const API = 'https://lusifa-punjabi-hate-detector.hf.space';
+
+  async function checkServer() {
+    try {
+      const res = await fetch(`${API}/health`, {
+        signal: AbortSignal.timeout(5000),
+        headers: { 'ngrok-skip-browser-warning': '1' }
+      });
+      const data = await res.json();
+      if (data.status === 'running') {
+        document.getElementById('statusDot').className = 'status-dot online';
+        document.getElementById('statusText').textContent = 'Server online · ' + data.device;
+      }
+    } catch {
+      document.getElementById('statusDot').className = 'status-dot offline';
+      document.getElementById('statusText').textContent = 'Server offline';
+    }
+  }
+
+  checkServer();
+  setInterval(checkServer, 10000);
+
+  function setEx(text) {
+    document.getElementById('inputText').value = text;
+    updateCharCount(document.getElementById('inputText'));
+    document.getElementById('resultArea').classList.remove('show');
+    document.getElementById('errorBox').classList.remove('show');
+  }
+
+  function updateCharCount(el) {
+    document.getElementById('charCount').textContent = el.value.length;
+  }
+
+  function showError(msg) {
+    const box = document.getElementById('errorBox');
+    box.textContent = '⚠️ ' + msg;
+    box.classList.add('show');
+    document.getElementById('resultArea').classList.remove('show');
+  }
+
+  function resetBtn() {
+    document.getElementById('analyzeBtn').disabled = false;
+    document.getElementById('btnIcon').textContent = '🔍';
+    document.getElementById('btnText').textContent = 'Analyze Text';
+    document.getElementById('loading').classList.remove('show');
+  }
+
+  async function analyze() {
+    const text = document.getElementById('inputText').value.trim();
+    if (!text || text.length < 2) {
+      showError('Please enter some Punjabi text first.');
+      return;
+    }
+
+    document.getElementById('analyzeBtn').disabled = true;
+    document.getElementById('btnIcon').textContent = '⏳';
+    document.getElementById('btnText').textContent = 'Analyzing...';
+    document.getElementById('loading').classList.add('show');
+    document.getElementById('resultArea').classList.remove('show');
+    document.getElementById('errorBox').classList.remove('show');
+    document.getElementById('confFill').style.width = '0';
+
+    try {
+      const res = await fetch(`${API}/predict`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'ngrok-skip-browser-warning': '1'
+        },
+        body: JSON.stringify({ text }),
+        signal: AbortSignal.timeout(60000)
+      });
+
+      if (res.status === 422) {
+        const err = await res.json();
+        showError('🚫 ' + err.message);
+        resetBtn();
+        return;
+      }
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || `Server error: ${res.status}`);
+      }
+
+      const data = await res.json();
+      showResult(data);
+
+    } catch (err) {
+      if (err.name === 'TimeoutError') {
+        showError('Request timed out — model is loading, please try again in 30 seconds.');
+      } else if (err.message.includes('fetch') || err.message.includes('Failed')) {
+        showError('Cannot reach server. Space may be starting up — try again in 30 seconds.');
+      } else {
+        showError(err.message);
+      }
+    }
+
+    resetBtn();
+  }
+
+  function showResult(data) {
+    const isHate = data.is_hate;
+    const conf = data.confidence;
+    const probs = data.probabilities;
+
+    const box = document.getElementById('resultBox');
+    box.className = 'result-box ' + (isHate ? 'hate' : 'safe');
+
+    document.getElementById('rIcon').textContent = isHate ? '🚨' : '✅';
+    document.getElementById('rLabel').textContent = isHate ? 'HATE SPEECH DETECTED' : 'NON-HATE — SAFE';
+    document.getElementById('rDesc').textContent = isHate
+      ? 'This text contains hateful or offensive language targeting individuals or groups.'
+      : 'This text appears safe and does not contain hate speech.';
+
+    document.getElementById('confText').textContent = (conf * 100).toFixed(1) + '%';
+    document.getElementById('probNH').textContent = ((probs.NON_HATE || 0) * 100).toFixed(1) + '%';
+    document.getElementById('probH').textContent  = ((probs.HATE || 0) * 100).toFixed(1) + '%';
+
+    document.getElementById('loading').classList.remove('show');
+    document.getElementById('resultArea').classList.add('show');
+
+    setTimeout(() => {
+      document.getElementById('confFill').style.width = (conf * 100) + '%';
+    }, 100);
+  }
+
+  document.addEventListener('keydown', e => {
+    if (e.ctrlKey && e.key === 'Enter') analyze();
+  });
+</script>
+</body>
+</html>
