@@ -1,421 +1,1091 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
+
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ਪੰਜਾਬੀ Hate Speech Detector</title>
-<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500&family=Noto+Sans+Gurmukhi:wght@400;600&display=swap" rel="stylesheet">
-<style>
-  :root {
-    --bg: #0a0a0f;
-    --surface: #13131a;
-    --surface2: #1c1c28;
-    --border: #2a2a3d;
-    --accent: #6c63ff;
-    --accent2: #ff6584;
-    --hate: #ff4d6d;
-    --safe: #06d6a0;
-    --text: #e8e8f0;
-    --muted: #6b6b8a;
-    --gold: #ffd166;
-  }
-  * { margin:0; padding:0; box-sizing:border-box; }
-  body {
-    background: var(--bg);
-    color: var(--text);
-    font-family: 'Syne', sans-serif;
-    min-height: 100vh;
-    overflow-x: hidden;
-  }
-  body::before {
-    content:'';
-    position:fixed; inset:0;
-    background-image:
-      linear-gradient(rgba(108,99,255,0.03) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(108,99,255,0.03) 1px, transparent 1px);
-    background-size: 40px 40px;
-    pointer-events:none; z-index:0;
-  }
-  .orb { position:fixed; border-radius:50%; filter:blur(100px); opacity:0.1; pointer-events:none; z-index:0; }
-  .orb1 { width:500px;height:500px;background:var(--accent);top:-150px;left:-100px;animation:f1 8s ease-in-out infinite; }
-  .orb2 { width:400px;height:400px;background:var(--accent2);bottom:-100px;right:-100px;animation:f2 10s ease-in-out infinite; }
-  @keyframes f1{0%,100%{transform:translate(0,0)}50%{transform:translate(30px,40px)}}
-  @keyframes f2{0%,100%{transform:translate(0,0)}50%{transform:translate(-30px,-20px)}}
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PunjabiGuard — Hate Speech Detector</title>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&family=Noto+Sans+Gurmukhi:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    /* ─── TOKENS ─────────────────────────────────────── */
+    [data-theme="dark"] {
+      --bg: #060609;
+      --bg2: #0d0d14;
+      --surface: #111118;
+      --surface2: #18181f;
+      --surface3: #1f1f2a;
+      --border: rgba(255,255,255,0.07);
+      --border2: rgba(255,255,255,0.12);
+      --text: #f0f0f8;
+      --text2: #a0a0b8;
+      --text3: #55556a;
+      --accent: #7c6bff;
+      --accent-glow: rgba(124,107,255,0.25);
+      --accent2: #ff6b8a;
+      --safe: #00e5a0;
+      --safe-dim: rgba(0,229,160,0.12);
+      --hate: #ff4d70;
+      --hate-dim: rgba(255,77,112,0.12);
+      --gold: #ffcc5c;
+      --shadow: rgba(0,0,0,0.6);
+      --orb1: rgba(124,107,255,0.12);
+      --orb2: rgba(255,107,138,0.08);
+    }
+    [data-theme="light"] {
+      --bg: #f5f5fa;
+      --bg2: #ededf4;
+      --surface: #ffffff;
+      --surface2: #f8f8fc;
+      --surface3: #f0f0f8;
+      --border: rgba(0,0,0,0.07);
+      --border2: rgba(0,0,0,0.13);
+      --text: #12121a;
+      --text2: #5a5a78;
+      --text3: #aaaac0;
+      --accent: #6255e8;
+      --accent-glow: rgba(98,85,232,0.18);
+      --accent2: #e8456a;
+      --safe: #009e6e;
+      --safe-dim: rgba(0,158,110,0.1);
+      --hate: #d93254;
+      --hate-dim: rgba(217,50,84,0.1);
+      --gold: #d4900a;
+      --shadow: rgba(0,0,0,0.1);
+      --orb1: rgba(98,85,232,0.08);
+      --orb2: rgba(232,69,106,0.06);
+    }
 
-  header {
-    position:relative; z-index:10;
-    padding:20px 40px;
-    display:flex; align-items:center; justify-content:space-between;
-    border-bottom:1px solid var(--border);
-  }
-  .logo { display:flex; align-items:center; gap:12px; font-size:15px; font-weight:700; }
-  .logo-icon { width:36px;height:36px;background:linear-gradient(135deg,var(--accent),var(--accent2));border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:18px; }
-  .server-status { display:flex;align-items:center;gap:8px;font-size:12px;font-family:'JetBrains Mono',monospace;color:var(--muted); }
-  .status-dot { width:8px;height:8px;border-radius:50%;background:#555;transition:background 0.3s; }
-  .status-dot.online { background:var(--safe);box-shadow:0 0 8px var(--safe);animation:pulse 2s infinite; }
-  .status-dot.offline { background:var(--hate); }
-  @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
+    /* ─── RESET ──────────────────────────────────────── */
+    *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+    html { scroll-behavior: smooth; }
 
-  .hero { position:relative;z-index:10;text-align:center;padding:70px 40px 50px; }
-  .hero-tag {
-    display:inline-flex;align-items:center;gap:8px;
-    padding:6px 16px;
-    background:rgba(255,213,102,0.1);border:1px solid rgba(255,213,102,0.25);
-    border-radius:20px;font-size:12px;font-family:'JetBrains Mono',monospace;
-    color:var(--gold);margin-bottom:24px;letter-spacing:0.08em;
-    animation:fadeDown 0.6s ease both;
-  }
-  h1 { font-size:clamp(2.2rem,5vw,4.5rem);font-weight:800;line-height:1.05;letter-spacing:-0.02em;margin-bottom:16px;animation:fadeDown 0.6s 0.1s ease both; }
-  h1 .hl { background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text; }
-  h1 .gur { font-family:'Noto Sans Gurmukhi',sans-serif;font-size:0.6em;display:block;color:var(--muted);-webkit-text-fill-color:var(--muted);margin-top:6px; }
-  .hero p { font-size:1rem;color:var(--muted);max-width:520px;margin:0 auto 36px;line-height:1.7;animation:fadeDown 0.6s 0.2s ease both; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Outfit', sans-serif;
+      min-height: 100vh;
+      overflow-x: hidden;
+      transition: background 0.35s ease, color 0.35s ease;
+    }
 
-  .stats { display:flex;justify-content:center;gap:36px;margin-bottom:50px;flex-wrap:wrap;animation:fadeDown 0.6s 0.3s ease both; }
-  .stat-num { font-size:1.8rem;font-weight:800;font-family:'JetBrains Mono',monospace;background:linear-gradient(135deg,var(--accent),var(--safe));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text; }
-  .stat-label { font-size:0.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.1em;margin-top:3px; }
+    /* ─── BACKGROUND TEXTURE ─────────────────────────── */
+    body::before {
+      content: '';
+      position: fixed; inset: 0;
+      background-image:
+        radial-gradient(circle at 20% 20%, var(--orb1) 0%, transparent 50%),
+        radial-gradient(circle at 80% 80%, var(--orb2) 0%, transparent 50%);
+      pointer-events: none; z-index: 0;
+      transition: background-image 0.35s ease;
+    }
 
-  .demo-wrap { position:relative;z-index:10;max-width:760px;margin:0 auto;padding:0 20px 70px;animation:fadeUp 0.7s 0.4s ease both; }
-  .card { background:var(--surface);border:1px solid var(--border);border-radius:20px;overflow:hidden;box-shadow:0 40px 80px rgba(0,0,0,0.5); }
-  .card-head { padding:18px 26px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;background:var(--surface2); }
-  .dots { display:flex;gap:6px; }
-  .dot { width:12px;height:12px;border-radius:50%; }
-  .dot:nth-child(1){background:#ff5f57}.dot:nth-child(2){background:#febc2e}.dot:nth-child(3){background:#28c840}
-  .card-title { font-size:13px;font-family:'JetBrains Mono',monospace;color:var(--muted);margin-left:6px; }
-  .card-body { padding:28px 26px; }
+    .grid-lines {
+      position: fixed; inset: 0; pointer-events: none; z-index: 0;
+      background-image:
+        linear-gradient(var(--border) 1px, transparent 1px),
+        linear-gradient(90deg, var(--border) 1px, transparent 1px);
+      background-size: 48px 48px;
+      mask-image: radial-gradient(ellipse 80% 80% at 50% 0%, black 40%, transparent 100%);
+    }
 
-  .input-label { font-size:11px;font-family:'JetBrains Mono',monospace;color:var(--muted);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:10px;display:flex;align-items:center;gap:6px; }
-  .input-label::before { content:'→';color:var(--accent); }
-  textarea {
-    width:100%;min-height:120px;background:var(--bg);
-    border:1px solid var(--border);border-radius:12px;
-    padding:16px 18px;color:var(--text);
-    font-family:'Noto Sans Gurmukhi','Syne',sans-serif;font-size:1.05rem;line-height:1.7;
-    resize:vertical;transition:border-color 0.2s,box-shadow 0.2s;outline:none;
-  }
-  textarea:focus { border-color:var(--accent);box-shadow:0 0 0 3px rgba(108,99,255,0.15); }
-  textarea::placeholder { color:var(--muted);font-size:0.9rem; }
-  .char-count { text-align:right;font-size:11px;font-family:'JetBrains Mono',monospace;color:var(--muted);margin-top:6px; }
+    /* ─── HEADER ─────────────────────────────────────── */
+    header {
+      position: sticky; top: 0; z-index: 100;
+      padding: 0 clamp(20px, 4vw, 48px);
+      height: 64px;
+      display: flex; align-items: center; justify-content: space-between;
+      background: rgba(6,6,9,0.7);
+      backdrop-filter: blur(20px) saturate(180%);
+      border-bottom: 1px solid var(--border);
+      transition: background 0.35s;
+    }
+    [data-theme="light"] header {
+      background: rgba(245,245,250,0.8);
+    }
 
-  .examples { margin-top:14px;display:flex;flex-wrap:wrap;gap:8px; }
-  .ex-label { font-size:11px;color:var(--muted);font-family:'JetBrains Mono',monospace;width:100%; }
-  .ex-btn { padding:5px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:20px;color:var(--muted);font-size:12px;font-family:'Noto Sans Gurmukhi',sans-serif;cursor:pointer;transition:all 0.2s;white-space:nowrap; }
-  .ex-btn:hover { border-color:var(--accent);color:var(--text);background:rgba(108,99,255,0.1); }
-  .ex-btn.h:hover { border-color:var(--hate);background:rgba(255,77,109,0.1);color:var(--hate); }
-  .ex-btn.s:hover { border-color:var(--safe);background:rgba(6,214,160,0.1);color:var(--safe); }
+    .logo {
+      display: flex; align-items: center; gap: 10px;
+      text-decoration: none; color: var(--text);
+    }
 
-  .btn-analyze {
-    width:100%;margin-top:18px;padding:15px;
-    background:linear-gradient(135deg,var(--accent),#8b83ff);
-    border:none;border-radius:12px;color:#fff;
-    font-family:'Syne',sans-serif;font-size:1rem;font-weight:700;letter-spacing:0.05em;
-    cursor:pointer;transition:all 0.2s;
-    display:flex;align-items:center;justify-content:center;gap:10px;
-  }
-  .btn-analyze:hover:not(:disabled) { transform:translateY(-2px);box-shadow:0 12px 30px rgba(108,99,255,0.4); }
-  .btn-analyze:disabled { opacity:0.6;cursor:not-allowed; }
+    /* ── Khanda-inspired SVG logo ── */
+    .logo-mark {
+      width: 38px; height: 38px; flex-shrink: 0;
+      filter: drop-shadow(0 0 8px var(--accent-glow));
+      transition: filter 0.3s;
+    }
+    .logo:hover .logo-mark { filter: drop-shadow(0 0 14px var(--accent-glow)); }
 
-  .loading { display:none;align-items:center;gap:12px;padding:18px 0;color:var(--muted);font-size:13px;font-family:'JetBrains Mono',monospace; }
-  .loading.show { display:flex; }
-  .spinner { width:18px;height:18px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin 0.7s linear infinite; }
-  @keyframes spin{to{transform:rotate(360deg)}}
+    .logo-text {
+      display: flex; flex-direction: column; line-height: 1;
+    }
+    .logo-name {
+      font-size: 15px; font-weight: 800; letter-spacing: -0.01em;
+      background: linear-gradient(120deg, var(--accent), var(--accent2));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    }
+    .logo-sub {
+      font-size: 10px; color: var(--text3);
+      font-family: 'JetBrains Mono', monospace; letter-spacing: 0.05em;
+      margin-top: 2px;
+    }
 
-  .result-area { display:none;margin-top:22px;animation:fadeUp 0.4s ease both; }
-  .result-area.show { display:block; }
-  .result-box { border-radius:14px;padding:22px 24px;border:1px solid;display:flex;align-items:flex-start;gap:18px; }
-  .result-box.hate { background:rgba(255,77,109,0.08);border-color:rgba(255,77,109,0.3); }
-  .result-box.safe { background:rgba(6,214,160,0.08);border-color:rgba(6,214,160,0.3); }
-  .result-icon { font-size:2.2rem;flex-shrink:0;animation:popIn 0.4s cubic-bezier(0.175,0.885,0.32,1.275) both; }
-  @keyframes popIn{from{transform:scale(0) rotate(-20deg)}to{transform:scale(1) rotate(0)}}
-  .result-label { font-size:1.3rem;font-weight:800;margin-bottom:5px; }
-  .result-box.hate .result-label { color:var(--hate); }
-  .result-box.safe .result-label { color:var(--safe); }
-  .result-desc { font-size:0.85rem;color:var(--muted);line-height:1.5;margin-bottom:14px; }
-  .conf-bar { background:var(--bg);border-radius:999px;height:5px;overflow:hidden;margin-bottom:6px; }
-  .conf-fill { height:100%;border-radius:999px;transition:width 1s cubic-bezier(0.4,0,0.2,1);width:0; }
-  .hate .conf-fill { background:linear-gradient(90deg,#ff4d6d,#ff8fa3); }
-  .safe .conf-fill { background:linear-gradient(90deg,#06d6a0,#80ffdb); }
-  .conf-labels { display:flex;justify-content:space-between;font-size:11px;font-family:'JetBrains Mono',monospace;color:var(--muted); }
+    .header-right { display: flex; align-items: center; gap: 16px; }
 
-  .probs { margin-top:12px;display:flex;gap:12px; }
-  .prob-chip { flex:1;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px;text-align:center; }
-  .prob-chip .p-label { font-size:10px;color:var(--muted);font-family:'JetBrains Mono',monospace;text-transform:uppercase;margin-bottom:4px; }
-  .prob-chip .p-val { font-size:1.1rem;font-weight:700;font-family:'JetBrains Mono',monospace; }
-  .prob-chip.hate-chip .p-val { color:var(--hate); }
-  .prob-chip.safe-chip .p-val { color:var(--safe); }
+    .server-pill {
+      display: flex; align-items: center; gap: 7px;
+      padding: 6px 12px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      font-size: 11px; font-family: 'JetBrains Mono', monospace;
+      color: var(--text2);
+      transition: all 0.3s;
+    }
+    .status-dot {
+      width: 7px; height: 7px; border-radius: 50%;
+      background: var(--text3); transition: background 0.3s, box-shadow 0.3s;
+      flex-shrink: 0;
+    }
+    .status-dot.online {
+      background: var(--safe);
+      box-shadow: 0 0 0 3px var(--safe-dim), 0 0 8px var(--safe);
+      animation: blink 2s ease-in-out infinite;
+    }
+    .status-dot.offline { background: var(--hate); }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.5} }
 
-  .error-box { margin-top:16px;padding:14px 18px;background:rgba(255,77,109,0.08);border:1px solid rgba(255,77,109,0.3);border-radius:10px;font-size:13px;font-family:'JetBrains Mono',monospace;color:var(--hate);display:none; }
-  .error-box.show { display:block; }
+    /* ── Theme Toggle ── */
+    .theme-btn {
+      width: 38px; height: 38px; border-radius: 10px;
+      border: 1px solid var(--border2);
+      background: var(--surface2);
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+      transition: all 0.2s; color: var(--text2);
+      position: relative; overflow: hidden;
+    }
+    .theme-btn:hover { border-color: var(--accent); background: var(--surface3); color: var(--text); }
+    .theme-btn svg { width: 16px; height: 16px; transition: transform 0.4s; }
+    .theme-btn:hover svg { transform: rotate(20deg); }
 
-  .info-section { position:relative;z-index:10;max-width:760px;margin:0 auto;padding:0 20px 70px;display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px; }
-  .info-card { background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:22px;transition:all 0.2s; }
-  .info-card:hover { border-color:rgba(108,99,255,0.4);transform:translateY(-3px); }
-  .info-icon { font-size:1.6rem;margin-bottom:10px; }
-  .info-card h3 { font-size:0.85rem;font-weight:700;margin-bottom:7px; }
-  .info-card p { font-size:0.78rem;color:var(--muted);line-height:1.6; }
-  .info-card .val { font-family:'JetBrains Mono',monospace;font-size:1.4rem;font-weight:700;color:var(--accent);margin-bottom:3px; }
+    /* ─── HERO ───────────────────────────────────────── */
+    .hero {
+      position: relative; z-index: 10;
+      text-align: center;
+      padding: clamp(60px,8vw,100px) clamp(20px,4vw,48px) clamp(40px,5vw,60px);
+    }
 
-  footer { position:relative;z-index:10;text-align:center;padding:28px;border-top:1px solid var(--border);color:var(--muted);font-size:12px;font-family:'JetBrains Mono',monospace; }
-  footer span { color:var(--accent); }
+    .badge {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 7px 18px;
+      background: linear-gradient(135deg, rgba(255,204,92,0.13), rgba(255,204,92,0.06));
+      border: 1.5px solid rgba(212,144,10,0.45);
+      border-radius: 999px;
+      font-size: 11px; font-family: 'JetBrains Mono', monospace;
+      color: var(--gold); letter-spacing: 0.06em;
+      margin-bottom: 28px;
+      animation: slideDown 0.7s cubic-bezier(0.16,1,0.3,1) both;
+      box-shadow: 0 2px 12px rgba(212,144,10,0.1);
+    }
+    [data-theme="light"] .badge {
+      background: linear-gradient(135deg, rgba(212,144,10,0.10), rgba(212,144,10,0.05));
+      border-color: rgba(180,110,0,0.5);
+      box-shadow: 0 2px 12px rgba(180,110,0,0.12);
+    }
+    .badge-dot {
+      width: 6px; height: 6px; border-radius: 50%;
+      background: var(--gold); animation: blink 1.5s ease-in-out infinite;
+      flex-shrink: 0;
+    }
 
-  @keyframes fadeDown{from{opacity:0;transform:translateY(-20px)}to{opacity:1;transform:translateY(0)}}
-  @keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
-</style>
+    h1 {
+      font-size: clamp(2.4rem, 5.5vw, 5rem);
+      font-weight: 900; line-height: 1.04; letter-spacing: -0.035em;
+      margin-bottom: 20px;
+      animation: slideDown 0.7s 0.1s cubic-bezier(0.16,1,0.3,1) both;
+    }
+    h1 .word-plain { color: var(--text); }
+    h1 .word-grad {
+      background: linear-gradient(125deg, var(--accent) 20%, var(--accent2) 100%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    }
+    .gurmukhi-line {
+      display: block; margin-top: 10px;
+      font-family: 'Noto Sans Gurmukhi', sans-serif;
+      font-size: clamp(0.85rem, 1.5vw, 1.1rem);
+      font-weight: 400; letter-spacing: 0.01em;
+      color: var(--text3); -webkit-text-fill-color: var(--text3);
+    }
+
+    .hero-desc {
+      font-size: clamp(0.9rem, 1.5vw, 1.05rem);
+      color: var(--text2); max-width: 500px; margin: 0 auto 44px;
+      line-height: 1.75; font-weight: 400;
+      animation: slideDown 0.7s 0.2s cubic-bezier(0.16,1,0.3,1) both;
+    }
+
+    /* ─── STATS ROW ──────────────────────────────────── */
+    .stats {
+      display: flex; justify-content: center; gap: clamp(24px,4vw,52px);
+      flex-wrap: wrap; margin-bottom: 56px;
+      animation: slideDown 0.7s 0.3s cubic-bezier(0.16,1,0.3,1) both;
+    }
+    .stat { text-align: center; }
+    .stat-num {
+      font-size: clamp(1.5rem, 3vw, 2.2rem);
+      font-weight: 900; font-family: 'JetBrains Mono', monospace;
+      background: linear-gradient(135deg, var(--accent), var(--safe));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+      line-height: 1;
+    }
+    .stat-label {
+      font-size: 0.65rem; color: var(--text3); letter-spacing: 0.12em;
+      text-transform: uppercase; margin-top: 4px; font-weight: 500;
+    }
+    .stat-divider {
+      width: 1px; height: 36px; background: var(--border2);
+      align-self: center; display: block;
+    }
+    @media (max-width: 480px) { .stat-divider { display: none; } }
+
+    /* ─── DEMO CARD ──────────────────────────────────── */
+    .demo-wrap {
+      position: relative; z-index: 10;
+      max-width: 720px; margin: 0 auto;
+      padding: 0 clamp(16px,3vw,32px) 72px;
+      animation: slideUp 0.8s 0.4s cubic-bezier(0.16,1,0.3,1) both;
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border2);
+      border-radius: 20px;
+      overflow: hidden;
+      box-shadow: 0 2px 0 rgba(255,255,255,0.04) inset,
+                  0 32px 80px var(--shadow),
+                  0 0 0 1px var(--border);
+      transition: box-shadow 0.3s, border-color 0.3s;
+    }
+
+    .card-head {
+      padding: 14px 22px;
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; gap: 10px;
+      background: var(--surface2);
+    }
+    .traffic-lights { display: flex; gap: 6px; }
+    .tl { width: 11px; height: 11px; border-radius: 50%; }
+    .tl-r { background: #ff5f57; }
+    .tl-y { background: #ffbe2e; }
+    .tl-g { background: #2acf4e; }
+
+    .card-filename {
+      font-size: 12px; font-family: 'JetBrains Mono', monospace;
+      color: var(--text3); margin-left: 4px;
+      flex: 1; text-align: center;
+    }
+
+    .card-body { padding: clamp(20px,3vw,32px); }
+
+    /* ─── INPUT ──────────────────────────────────────── */
+    .field-header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 10px;
+    }
+    .field-label {
+      font-size: 11px; font-family: 'JetBrains Mono', monospace;
+      color: var(--text3); text-transform: uppercase; letter-spacing: 0.1em;
+      display: flex; align-items: center; gap: 6px;
+    }
+    .field-label::before {
+      content: ''; display: block; width: 3px; height: 12px;
+      background: var(--accent); border-radius: 2px;
+    }
+    .char-count {
+      font-size: 11px; font-family: 'JetBrains Mono', monospace;
+      color: var(--text3);
+    }
+
+    textarea {
+      width: 100%;
+      min-height: 110px;
+      background: var(--bg2);
+      border: 1px solid var(--border2);
+      border-radius: 12px;
+      padding: 16px 18px;
+      color: var(--text);
+      font-family: 'Noto Sans Gurmukhi', 'Outfit', sans-serif;
+      font-size: 1.05rem;
+      line-height: 1.75;
+      resize: vertical;
+      transition: border-color 0.2s, box-shadow 0.2s, background 0.35s;
+      outline: none;
+    }
+    textarea:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-glow);
+    }
+    textarea::placeholder { color: var(--text3); font-size: 0.92rem; }
+
+    /* ─── EXAMPLES ───────────────────────────────────── */
+    .examples { margin-top: 14px; display: flex; flex-wrap: wrap; gap: 7px; }
+    .ex-section-label {
+      font-size: 10px; font-family: 'JetBrains Mono', monospace;
+      color: var(--text3); width: 100%; letter-spacing: 0.06em;
+    }
+
+    .ex-btn {
+      padding: 5px 13px;
+      background: var(--surface2);
+      border: 1px solid var(--border2);
+      border-radius: 999px;
+      color: var(--text2); font-size: 12px;
+      font-family: 'Noto Sans Gurmukhi', sans-serif;
+      cursor: pointer; transition: all 0.18s; white-space: nowrap;
+    }
+    .ex-btn:hover {
+      border-color: var(--accent); color: var(--text);
+      background: var(--accent-glow); transform: translateY(-1px);
+    }
+    .ex-btn.h:hover {
+      border-color: var(--hate); background: var(--hate-dim); color: var(--hate);
+    }
+    .ex-btn.s:hover {
+      border-color: var(--safe); background: var(--safe-dim); color: var(--safe);
+    }
+    .ex-tag {
+      font-size: 9px; vertical-align: super; opacity: 0.6;
+      font-family: 'JetBrains Mono', monospace; margin-left: 2px;
+    }
+
+    /* ─── ANALYZE BUTTON ─────────────────────────────── */
+    .btn-analyze {
+      width: 100%; margin-top: 20px; padding: 16px 24px;
+      background: linear-gradient(135deg, var(--accent) 0%, #9a8bff 100%);
+      border: none; border-radius: 12px;
+      color: #fff; font-family: 'Outfit', sans-serif;
+      font-size: 0.95rem; font-weight: 700; letter-spacing: 0.04em;
+      cursor: pointer; transition: all 0.25s;
+      display: flex; align-items: center; justify-content: center; gap: 10px;
+      position: relative; overflow: hidden;
+    }
+    .btn-analyze::before {
+      content: ''; position: absolute; inset: 0;
+      background: linear-gradient(135deg, rgba(255,255,255,0.1), transparent);
+    }
+    .btn-analyze:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 16px 40px var(--accent-glow), 0 4px 12px rgba(0,0,0,0.3);
+    }
+    .btn-analyze:active:not(:disabled) { transform: translateY(0px); }
+    .btn-analyze:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .btn-icon { font-size: 1rem; transition: transform 0.3s; }
+    .btn-analyze:hover:not(:disabled) .btn-icon { transform: scale(1.2); }
+
+    /* ─── LOADING ─────────────────────────────────────── */
+    .loading {
+      display: none; align-items: center; gap: 12px;
+      padding: 20px 0; color: var(--text2);
+      font-size: 12px; font-family: 'JetBrains Mono', monospace;
+    }
+    .loading.show { display: flex; }
+
+    .spinner {
+      width: 18px; height: 18px; border-radius: 50%;
+      border: 2px solid var(--border2); border-top-color: var(--accent);
+      animation: spin 0.65s linear infinite; flex-shrink: 0;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .loading-dots::after {
+      content: '...'; animation: dots 1.5s steps(4, end) infinite;
+    }
+    @keyframes dots {
+      0%{content:''}25%{content:'.'}50%{content:'..'}75%{content:'...'}
+    }
+
+    /* ─── ERROR BOX ──────────────────────────────────── */
+    .error-box {
+      margin-top: 16px; padding: 13px 18px;
+      background: var(--hate-dim);
+      border: 1px solid rgba(255,77,112,0.25);
+      border-radius: 10px; font-size: 12px;
+      font-family: 'JetBrains Mono', monospace;
+      color: var(--hate); display: none;
+      animation: slideUp 0.3s ease both;
+    }
+    .error-box.show { display: flex; gap: 10px; align-items: flex-start; }
+
+    /* ─── RESULT ─────────────────────────────────────── */
+    .result-area { display: none; margin-top: 22px; }
+    .result-area.show { display: block; animation: slideUp 0.4s cubic-bezier(0.16,1,0.3,1) both; }
+
+    .result-box {
+      border-radius: 14px; padding: 22px 24px;
+      border: 1px solid;
+      display: flex; align-items: flex-start; gap: 18px;
+      transition: all 0.3s;
+    }
+    .result-box.hate {
+      background: var(--hate-dim);
+      border-color: rgba(255,77,112,0.3);
+    }
+    .result-box.safe {
+      background: var(--safe-dim);
+      border-color: rgba(0,229,160,0.25);
+    }
+
+    .result-icon {
+      font-size: 2rem; flex-shrink: 0;
+      animation: popIn 0.5s cubic-bezier(0.175,0.885,0.32,1.4) both;
+    }
+    @keyframes popIn {
+      from { transform: scale(0) rotate(-30deg); opacity: 0; }
+      to   { transform: scale(1) rotate(0); opacity: 1; }
+    }
+
+    .result-content { flex: 1; min-width: 0; }
+    .result-label {
+      font-size: 1.1rem; font-weight: 800; letter-spacing: 0.01em;
+      margin-bottom: 4px;
+    }
+    .result-box.hate .result-label { color: var(--hate); }
+    .result-box.safe .result-label { color: var(--safe); }
+
+    .result-desc {
+      font-size: 0.82rem; color: var(--text2);
+      line-height: 1.55; margin-bottom: 16px;
+    }
+
+    .conf-row {
+      display: flex; align-items: center; justify-content: space-between;
+      font-size: 10px; font-family: 'JetBrains Mono', monospace;
+      color: var(--text3); margin-bottom: 6px;
+    }
+
+    .conf-bar {
+      background: var(--surface3); border-radius: 999px;
+      height: 4px; overflow: hidden; margin-bottom: 14px;
+    }
+    .conf-fill {
+      height: 100%; border-radius: 999px; width: 0;
+      transition: width 1.2s cubic-bezier(0.4,0,0.2,1);
+    }
+    .hate .conf-fill { background: linear-gradient(90deg, var(--hate), #ff8fa3); }
+    .safe .conf-fill { background: linear-gradient(90deg, var(--safe), #80ffdb); }
+
+    .probs { display: flex; gap: 10px; }
+    .prob-chip {
+      flex: 1; background: var(--surface);
+      border: 1px solid var(--border2);
+      border-radius: 10px; padding: 12px;
+      text-align: center; transition: border-color 0.2s;
+    }
+    .prob-chip .p-label {
+      font-size: 9px; color: var(--text3);
+      font-family: 'JetBrains Mono', monospace;
+      text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 5px;
+    }
+    .prob-chip .p-val {
+      font-size: 1.15rem; font-weight: 700;
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .prob-chip.hate-chip .p-val { color: var(--hate); }
+    .prob-chip.safe-chip .p-val { color: var(--safe); }
+
+    /* ─── INFO SECTION ───────────────────────────────── */
+    .info-section {
+      position: relative; z-index: 10;
+      max-width: 720px; margin: 0 auto;
+      padding: 0 clamp(16px,3vw,32px) 72px;
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 14px;
+    }
+    @media (max-width: 520px) {
+      .info-section { grid-template-columns: 1fr; }
+    }
+
+    .info-card {
+      background: var(--surface);
+      border: 1px solid var(--border2);
+      border-radius: 16px; padding: 24px 22px;
+      transition: all 0.25s; cursor: default;
+      position: relative; overflow: hidden;
+      display: flex; flex-direction: column; gap: 0;
+    }
+    .info-card::after {
+      content: ''; position: absolute;
+      top: 0; left: 0; right: 0; height: 3px;
+      background: linear-gradient(90deg, var(--accent), var(--accent2));
+      opacity: 0; transition: opacity 0.25s;
+      border-radius: 16px 16px 0 0;
+    }
+    .info-card:hover { transform: translateY(-5px); box-shadow: 0 20px 50px var(--shadow); border-color: var(--border2); }
+    .info-card:hover::after { opacity: 1; }
+
+    .info-icon-wrap {
+      width: 40px; height: 40px; border-radius: 10px;
+      background: var(--surface3);
+      border: 1px solid var(--border2);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.15rem; margin-bottom: 14px; flex-shrink: 0;
+    }
+
+    .info-val {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 1.6rem; font-weight: 800;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+      margin-bottom: 4px; line-height: 1;
+    }
+
+    .info-card h3 {
+      font-size: 0.85rem; font-weight: 700;
+      color: var(--text); margin-bottom: 8px; letter-spacing: 0.01em;
+    }
+    .info-card p {
+      font-size: 0.78rem; color: var(--text2); line-height: 1.65;
+      margin: 0;
+    }
+
+    /* ─── FOOTER ─────────────────────────────────────── */
+    footer {
+      position: relative; z-index: 10;
+      border-top: 1px solid var(--border);
+      padding: 48px clamp(20px,4vw,48px) 36px;
+      transition: background 0.35s;
+    }
+
+    .footer-inner {
+      max-width: 720px; margin: 0 auto;
+      display: flex; flex-direction: column; align-items: center; gap: 32px;
+    }
+
+    .footer-brand {
+      display: flex; flex-direction: column; align-items: center; gap: 10px;
+    }
+    .footer-logo {
+      display: flex; align-items: center; gap: 10px;
+    }
+    .footer-logo-name {
+      font-size: 17px; font-weight: 800;
+      background: linear-gradient(120deg, var(--accent), var(--accent2));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    }
+    .footer-tagline {
+      font-size: 12px; color: var(--text3);
+      font-family: 'JetBrains Mono', monospace;
+      letter-spacing: 0.05em; text-align: center;
+    }
+
+    .footer-divider {
+      width: 100%; height: 1px; background: var(--border);
+    }
+
+    .footer-social {
+      display: flex; align-items: center; gap: 12px; flex-wrap: wrap; justify-content: center;
+    }
+
+    .social-link {
+      display: flex; align-items: center; gap: 9px;
+      padding: 10px 18px;
+      background: var(--surface);
+      border: 1px solid var(--border2);
+      border-radius: 12px;
+      color: var(--text2); text-decoration: none;
+      font-size: 13px; font-weight: 600;
+      transition: all 0.22s;
+      white-space: nowrap;
+    }
+    .social-link svg { width: 17px; height: 17px; flex-shrink: 0; transition: transform 0.22s; }
+    .social-link:hover { transform: translateY(-3px); color: var(--text); border-color: var(--accent); box-shadow: 0 8px 24px var(--accent-glow); }
+    .social-link:hover svg { transform: scale(1.15); }
+
+    .social-link.gh:hover  { border-color: #e0e0e0; box-shadow: 0 8px 24px rgba(200,200,200,0.15); }
+    .social-link.li:hover  { border-color: #0a66c2; box-shadow: 0 8px 24px rgba(10,102,194,0.2); }
+    .social-link.hf:hover  { border-color: #ff9d00; box-shadow: 0 8px 24px rgba(255,157,0,0.2); }
+    .social-link.tw:hover  { border-color: #1d9bf0; box-shadow: 0 8px 24px rgba(29,155,240,0.2); }
+
+    .footer-tech {
+      display: flex; gap: 8px; flex-wrap: wrap; justify-content: center;
+    }
+    .tech-tag {
+      padding: 4px 12px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      color: var(--text3); font-size: 10px;
+      font-family: 'JetBrains Mono', monospace;
+      letter-spacing: 0.04em;
+    }
+
+    .footer-copy {
+      font-size: 11px; color: var(--text3);
+      font-family: 'JetBrains Mono', monospace;
+      text-align: center; line-height: 1.7;
+    }
+    .footer-copy span { color: var(--accent); }
+
+    @media (max-width: 520px) {
+      .social-link span { display: none; }
+      .social-link { padding: 10px 14px; }
+    }
+
+    /* ─── ANIMATIONS ─────────────────────────────────── */
+    @keyframes slideDown {
+      from { opacity:0; transform:translateY(-18px); }
+      to   { opacity:1; transform:translateY(0); }
+    }
+    @keyframes slideUp {
+      from { opacity:0; transform:translateY(14px); }
+      to   { opacity:1; transform:translateY(0); }
+    }
+
+    /* ─── SCROLLBAR ──────────────────────────────────── */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--surface3); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--border2); }
+
+    /* ─── RESPONSIVE ─────────────────────────────────── */
+    @media (max-width: 520px) {
+      .server-pill span { display: none; }
+      .logo-sub { display: none; }
+      .social-link span { display: none; }
+      .social-link { padding: 10px 14px; }
+      .info-section { grid-template-columns: 1fr; }
+    }
+  </style>
 </head>
+
 <body>
+  <div class="grid-lines"></div>
 
-<div class="orb orb1"></div>
-<div class="orb orb2"></div>
-
-<header>
-  <div class="logo">
-    <div class="logo-icon">🛡️</div>
-    PunjabiGuard
-  </div>
-  <div class="server-status">
-    <div class="status-dot" id="statusDot"></div>
-    <span id="statusText">Checking server...</span>
-  </div>
-</header>
-
-<section class="hero">
-  <div class="hero-tag">🎓 BTech Final Year Project — NLP · MuRIL · Deep Learning</div>
-  <h1>
-    Punjabi Hate Speech
-    <span class="hl">Detector</span>
-    <span class="gur">ਪੰਜਾਬੀ ਨਫ਼ਰਤੀ ਭਾਸ਼ਣ ਖੋਜ ਪ੍ਰਣਾਲੀ</span>
-  </h1>
-  <p>Real-time hate speech detection in Punjabi (Gurmukhi script) powered by fine-tuned MuRIL transformer.</p>
-  <div class="stats">
-    <div class="stat"><div class="stat-num">97.6%</div><div class="stat-label">Accuracy</div></div>
-    <div class="stat"><div class="stat-num">0.976</div><div class="stat-label">F1 Score</div></div>
-    <div class="stat"><div class="stat-num">1,384</div><div class="stat-label">Dataset Size</div></div>
-    <div class="stat"><div class="stat-num">MuRIL</div><div class="stat-label">Model</div></div>
-  </div>
-</section>
-
-<div class="demo-wrap">
-  <div class="card">
-    <div class="card-head">
-      <div class="dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
-      <div class="card-title">muril_inference.py — LIVE DEMO</div>
-    </div>
-    <div class="card-body">
-
-      <div class="input-label">Enter Punjabi Text (Gurmukhi Script)</div>
-      <textarea id="inputText"
-        placeholder="ਇੱਥੇ ਪੰਜਾਬੀ ਟੈਕਸਟ ਲਿਖੋ...&#10;Type or paste Punjabi text here..."
-        oninput="updateCharCount(this)"></textarea>
-      <div class="char-count"><span id="charCount">0</span> / 1000 characters</div>
-
-      <div class="examples">
-        <div class="ex-label">// quick examples — click to try:</div>
-        <button class="ex-btn s" onclick="setEx('ਪੰਜਾਬ ਦੇ ਲੋਕ ਬਹੁਤ ਮਿਹਨਤੀ ਨੇ')">ਪੰਜਾਬ ਦੇ ਲੋਕ ਮਿਹਨਤੀ</button>
-        <button class="ex-btn s" onclick="setEx('ਲੋਹੜੀ ਦਾ ਤਿਉਹਾਰ ਸਾਨੂੰ ਇਕੱਠੇ ਕਰਦਾ')">ਲੋਹੜੀ ਦਾ ਤਿਉਹਾਰ</button>
-        <button class="ex-btn s" onclick="setEx('ਪੰਜਾਬੀ ਭਾਸ਼ਾ ਬਹੁਤ ਸੁੰਦਰ ਏ')">ਪੰਜਾਬੀ ਭਾਸ਼ਾ</button>
-        <button class="ex-btn h" onclick="setEx('ਤੈਨੂੰ ਦੇਖ ਕੇ ਉਲਟੀ ਆਉਂਦੀ ਏ')">ਉਲਟੀ ਆਉਂਦੀ ਏ</button>
-        <button class="ex-btn h" onclick="setEx('ਕੁੱਤੇ ਦੀ ਮੌਤ ਮਰੇਂਗਾ ਕਮੀਨੇ')">ਕੁੱਤੇ ਦੀ ਮੌਤ</button>
-        <button class="ex-btn" onclick="setEx('ਏਹ ਬੰਦਾ ਹਰ ਵਾਰ ਝੂਠ ਹੀ ਮਾਰਦਾ')">ਝੂਠ ਮਾਰਦਾ</button>
+  <!-- ── HEADER ── -->
+  <header>
+    <a class="logo" href="#">
+      <!-- Khanda-inspired custom SVG logo -->
+      <svg class="logo-mark" viewBox="0 0 38 38" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="lg1" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#7c6bff"/>
+            <stop offset="100%" stop-color="#ff6b8a"/>
+          </linearGradient>
+          <linearGradient id="lg2" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stop-color="#7c6bff" stop-opacity="0.7"/>
+            <stop offset="100%" stop-color="#ff6b8a" stop-opacity="0.7"/>
+          </linearGradient>
+        </defs>
+        <!-- Outer ring -->
+        <circle cx="19" cy="19" r="17.5" stroke="url(#lg1)" stroke-width="1.2" fill="none"/>
+        <!-- Shield body -->
+        <path d="M19 6 L30 11 L30 20 C30 26.5 25 31.5 19 33 C13 31.5 8 26.5 8 20 L8 11 Z"
+              fill="url(#lg1)" opacity="0.15"/>
+        <path d="M19 8 L28.5 12.5 L28.5 20 C28.5 25.5 24.5 29.8 19 31.2 C13.5 29.8 9.5 25.5 9.5 20 L9.5 12.5 Z"
+              stroke="url(#lg1)" stroke-width="1.4" fill="none"/>
+        <!-- Center vertical blade -->
+        <line x1="19" y1="11" x2="19" y2="28" stroke="url(#lg1)" stroke-width="2" stroke-linecap="round"/>
+        <!-- Horizontal chakkar cross arms -->
+        <line x1="13" y1="18" x2="25" y2="18" stroke="url(#lg2)" stroke-width="1.5" stroke-linecap="round"/>
+        <!-- Angled guards -->
+        <line x1="19" y1="15" x2="14" y2="11" stroke="url(#lg1)" stroke-width="1.2" stroke-linecap="round" opacity="0.8"/>
+        <line x1="19" y1="15" x2="24" y2="11" stroke="url(#lg1)" stroke-width="1.2" stroke-linecap="round" opacity="0.8"/>
+        <!-- Center dot -->
+        <circle cx="19" cy="18" r="2" fill="url(#lg1)"/>
+      </svg>
+      <div class="logo-text">
+        <span class="logo-name">PunjabiGuard</span>
+        <span class="logo-sub">ਪੰਜਾਬੀ AI · v1.0</span>
       </div>
+    </a>
 
-      <button class="btn-analyze" onclick="analyze()" id="analyzeBtn">
-        <span id="btnIcon">🔍</span>
-        <span id="btnText">Analyze Text</span>
+    <div class="header-right">
+      <div class="server-pill">
+        <div class="status-dot" id="statusDot"></div>
+        <span id="statusText">Checking...</span>
+      </div>
+      <button class="theme-btn" id="themeBtn" title="Toggle theme" onclick="toggleTheme()">
+        <svg id="themeIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <!-- Moon icon shown in dark mode -->
+          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+        </svg>
       </button>
+    </div>
+  </header>
 
-      <div class="loading" id="loading">
-        <div class="spinner"></div>
-        <span id="loadingText">Sending to MuRIL model...</span>
+  <!-- ── HERO ── -->
+  <section class="hero">
+    <div class="badge">
+      <div class="badge-dot"></div>
+      BTech Final Year Project &nbsp;·&nbsp; NLP · MuRIL · Deep Learning
+    </div>
+
+    <h1>
+      <span class="word-plain">Punjabi Hate Speech</span><br>
+      <span class="word-grad">Detector</span>
+      <span class="gurmukhi-line">ਪੰਜਾਬੀ ਨਫ਼ਰਤੀ ਭਾਸ਼ਣ ਖੋਜ ਪ੍ਰਣਾਲੀ</span>
+    </h1>
+
+    <p class="hero-desc">
+      Real-time hate speech detection in Punjabi (Gurmukhi script),<br>
+      powered by a fine-tuned MuRIL transformer model.
+    </p>
+
+    <div class="stats">
+      <div class="stat">
+        <div class="stat-num">97.6%</div>
+        <div class="stat-label">Accuracy</div>
+      </div>
+      <span class="stat-divider"></span>
+      <div class="stat">
+        <div class="stat-num">0.976</div>
+        <div class="stat-label">F1 Score</div>
+      </div>
+      <span class="stat-divider"></span>
+      <div class="stat">
+        <div class="stat-num">1,384</div>
+        <div class="stat-label">Dataset Size</div>
+      </div>
+      <span class="stat-divider"></span>
+      <div class="stat">
+        <div class="stat-num">MuRIL</div>
+        <div class="stat-label">Model</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── DEMO CARD ── -->
+  <div class="demo-wrap">
+    <div class="card">
+      <div class="card-head">
+        <div class="traffic-lights">
+          <div class="tl tl-r"></div>
+          <div class="tl tl-y"></div>
+          <div class="tl tl-g"></div>
+        </div>
+        <div class="card-filename">muril_inference.py — Live Demo</div>
       </div>
 
-      <div class="error-box" id="errorBox"></div>
+      <div class="card-body">
+        <div class="field-header">
+          <div class="field-label">Enter Punjabi Text (Gurmukhi Script)</div>
+          <div class="char-count"><span id="charCount">0</span> / 1000</div>
+        </div>
 
-      <div class="result-area" id="resultArea">
-        <div class="result-box" id="resultBox">
-          <div class="result-icon" id="rIcon"></div>
-          <div style="flex:1">
-            <div class="result-label" id="rLabel"></div>
-            <div class="result-desc" id="rDesc"></div>
-            <div class="conf-bar"><div class="conf-fill" id="confFill"></div></div>
-            <div class="conf-labels"><span>Confidence</span><span id="confText"></span></div>
-            <div class="probs">
-              <div class="prob-chip safe-chip">
-                <div class="p-label">Non-Hate</div>
-                <div class="p-val" id="probNH">-</div>
+        <textarea
+          id="inputText"
+          placeholder="ਇੱਥੇ ਪੰਜਾਬੀ ਟੈਕਸਟ ਲਿਖੋ…&#10;Type or paste Punjabi text here…"
+          oninput="updateCharCount(this)"
+        ></textarea>
+
+        <div class="examples">
+          <div class="ex-section-label">// quick examples — click to try:</div>
+          <button class="ex-btn s" onclick="setEx('ਪੰਜਾਬ ਦੇ ਲੋਕ ਬਹੁਤ ਮਿਹਨਤੀ ਨੇ')">ਪੰਜਾਬ ਦੇ ਲੋਕ ਮਿਹਨਤੀ<span class="ex-tag">safe</span></button>
+          <button class="ex-btn s" onclick="setEx('ਲੋਹੜੀ ਦਾ ਤਿਉਹਾਰ ਸਾਨੂੰ ਇਕੱਠੇ ਕਰਦਾ')">ਲੋਹੜੀ ਦਾ ਤਿਉਹਾਰ<span class="ex-tag">safe</span></button>
+          <button class="ex-btn s" onclick="setEx('ਪੰਜਾਬੀ ਭਾਸ਼ਾ ਬਹੁਤ ਸੁੰਦਰ ਏ')">ਪੰਜਾਬੀ ਭਾਸ਼ਾ<span class="ex-tag">safe</span></button>
+          <button class="ex-btn h" onclick="setEx('ਤੈਨੂੰ ਦੇਖ ਕੇ ਉਲਟੀ ਆਉਂਦੀ ਏ')">ਉਲਟੀ ਆਉਂਦੀ ਏ<span class="ex-tag">hate</span></button>
+          <button class="ex-btn h" onclick="setEx('ਕੁੱਤੇ ਦੀ ਮੌਤ ਮਰੇਂਗਾ ਕਮੀਨੇ')">ਕੁੱਤੇ ਦੀ ਮੌਤ<span class="ex-tag">hate</span></button>
+          <button class="ex-btn" onclick="setEx('ਏਹ ਬੰਦਾ ਹਰ ਵਾਰ ਝੂਠ ਹੀ ਮਾਰਦਾ')">ਝੂਠ ਮਾਰਦਾ</button>
+        </div>
+
+        <button class="btn-analyze" onclick="analyze()" id="analyzeBtn">
+          <span class="btn-icon" id="btnIcon">🔍</span>
+          <span id="btnText">Analyze Text</span>
+          <span style="margin-left:auto;font-size:11px;opacity:0.6;font-family:'JetBrains Mono',monospace;">Ctrl+↵</span>
+        </button>
+
+        <div class="loading" id="loading">
+          <div class="spinner"></div>
+          <span id="loadingText">Sending to MuRIL model<span class="loading-dots"></span></span>
+        </div>
+
+        <div class="error-box" id="errorBox">
+          <span>⚠</span>
+          <span id="errorMsg"></span>
+        </div>
+
+        <div class="result-area" id="resultArea">
+          <div class="result-box" id="resultBox">
+            <div class="result-icon" id="rIcon"></div>
+            <div class="result-content">
+              <div class="result-label" id="rLabel"></div>
+              <div class="result-desc" id="rDesc"></div>
+              <div class="conf-row">
+                <span>Confidence</span>
+                <span id="confText"></span>
               </div>
-              <div class="prob-chip hate-chip">
-                <div class="p-label">Hate</div>
-                <div class="p-val" id="probH">-</div>
+              <div class="conf-bar">
+                <div class="conf-fill" id="confFill"></div>
+              </div>
+              <div class="probs">
+                <div class="prob-chip safe-chip">
+                  <div class="p-label">Non-Hate</div>
+                  <div class="p-val" id="probNH">—</div>
+                </div>
+                <div class="prob-chip hate-chip">
+                  <div class="p-label">Hate</div>
+                  <div class="p-val" id="probH">—</div>
+                </div>
               </div>
             </div>
           </div>
         </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- ── INFO CARDS ── -->
+  <div class="info-section">
+    <div class="info-card">
+      <div class="info-icon-wrap">🤖</div>
+      <h3>Model</h3>
+      <p>Google MuRIL — BERT-based, pre-trained on 17 Indian languages including Punjabi (Gurmukhi).</p>
+    </div>
+    <div class="info-card">
+      <div class="info-icon-wrap">📊</div>
+      <div class="info-val">97.6%</div>
+      <h3>Test Accuracy</h3>
+      <p>Tested on 208 held-out samples. F1: 0.976, Precision: 0.976, Recall: 0.976.</p>
+    </div>
+    <div class="info-card">
+      <div class="info-icon-wrap">📁</div>
+      <div class="info-val">1,384</div>
+      <h3>Dataset</h3>
+      <p>631 hate + 753 non-hate Punjabi comments. Manually curated + AI augmented.</p>
+    </div>
+    <div class="info-card">
+      <div class="info-icon-wrap">⚙️</div>
+      <h3>Training</h3>
+      <p>4 epochs · LR 2e-5 · Batch 16 · AdamW optimizer · Fine-tuned on T4 GPU via Google Colab.</p>
+    </div>
+  </div>
+
+  <!-- ── FOOTER ── -->
+  <footer>
+    <div class="footer-inner">
+
+      <!-- Brand -->
+      <div class="footer-brand">
+        <div class="footer-logo">
+          <svg width="28" height="28" viewBox="0 0 38 38" fill="none">
+            <defs>
+              <linearGradient id="flg" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#7c6bff"/>
+                <stop offset="100%" stop-color="#ff6b8a"/>
+              </linearGradient>
+            </defs>
+            <circle cx="19" cy="19" r="17.5" stroke="url(#flg)" stroke-width="1.2" fill="none"/>
+            <path d="M19 8 L28.5 12.5 L28.5 20 C28.5 25.5 24.5 29.8 19 31.2 C13.5 29.8 9.5 25.5 9.5 20 L9.5 12.5 Z" stroke="url(#flg)" stroke-width="1.4" fill="none"/>
+            <line x1="19" y1="11" x2="19" y2="28" stroke="url(#flg)" stroke-width="2" stroke-linecap="round"/>
+            <line x1="13" y1="18" x2="25" y2="18" stroke="url(#flg)" stroke-width="1.5" stroke-linecap="round"/>
+            <circle cx="19" cy="18" r="2" fill="url(#flg)"/>
+          </svg>
+          <span class="footer-logo-name">PunjabiGuard</span>
+        </div>
+        <div class="footer-tagline">BTech Final Year Project · Group 04 · 2026</div>
+      </div>
+
+      <div class="footer-divider"></div>
+
+      <!-- Social Links -->
+      <div class="footer-social">
+        <!-- GitHub -->
+        <a class="social-link gh" href="https://github.com/DevxAman/Punjabi_hate_remarks_detection" target="_blank" rel="noopener">
+          <svg viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/>
+          </svg>
+          <span>GitHub</span>
+        </a>
+
+        <!-- LinkedIn -->
+        <a class="social-link li" href="https://www.linkedin.com/in/amandeep-singh-991bb1254/" target="_blank" rel="noopener">
+          <svg viewBox="0 0 24 24" fill="currentColor">
+            <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
+          </svg>
+          <span>LinkedIn</span>
+        </a>
+
+        <!-- Hugging Face -->
+        <a class="social-link hf" href="https://huggingface.co/spaces/Lusifa/punjabi-hate-detector" target="_blank" rel="noopener">
+          <svg viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 1C5.925 1 1 5.925 1 12s4.925 11 11 11 11-4.925 11-11S18.075 1 12 1zm0 2c4.97 0 9 4.03 9 9s-4.03 9-9 9-9-4.03-9-9 4.03-9 9-9zm-3.5 5a1.5 1.5 0 100 3 1.5 1.5 0 000-3zm7 0a1.5 1.5 0 100 3 1.5 1.5 0 000-3zm-6.5 5.5c0 .5.224.95.577 1.26.74.65 1.777 1.04 2.923 1.04s2.183-.39 2.923-1.04A1.63 1.63 0 0015 13.5H9z"/>
+          </svg>
+          <span>HuggingFace</span>
+        </a>
+
+        <!-- Twitter / X -->
+        <a class="social-link tw" href="https://x.com/DevxAman_" target="_blank" rel="noopener">
+          <svg viewBox="0 0 24 24" fill="currentColor">
+            <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+          </svg>
+          <span>Twitter / X</span>
+        </a>
+      </div>
+
+      <div class="footer-divider"></div>
+
+      <!-- Tech stack + copyright -->
+      <div class="footer-tech">
+        <span class="tech-tag">MuRIL Transformer</span>
+        <span class="tech-tag">Flask + PyTorch</span>
+        <span class="tech-tag">Hugging Face Spaces</span>
+        <span class="tech-tag">Gurmukhi NLP</span>
+      </div>
+
+      <div class="footer-copy">
+        Built with ♥ by <span>Group 04</span> · BTech CS Final Year · Punjab, India<br>
+        PunjabiGuard © 2026 · All rights reserved
       </div>
 
     </div>
-  </div>
-</div>
+  </footer>
 
-<div class="info-section">
-  <div class="info-card">
-    <div class="info-icon">🤖</div>
-    <h3>Model</h3>
-    <p>Google MuRIL — BERT-based model pre-trained on 17 Indian languages including Punjabi (Gurmukhi).</p>
-  </div>
-  <div class="info-card">
-    <div class="info-icon">📊</div>
-    <div class="val">97.6%</div>
-    <h3>Test Accuracy</h3>
-    <p>Tested on 208 held-out samples. F1: 0.976, Precision: 0.976, Recall: 0.976.</p>
-  </div>
-  <div class="info-card">
-    <div class="info-icon">📁</div>
-    <div class="val">1,384</div>
-    <h3>Dataset</h3>
-    <p>631 hate + 753 non-hate Punjabi social media comments. Manually curated + AI augmented.</p>
-  </div>
-  <div class="info-card">
-    <div class="info-icon">⚙️</div>
-    <h3>Training</h3>
-    <p>4 epochs · LR 2e-5 · Batch 16 · AdamW · Fine-tuned on T4 GPU via Google Colab.</p>
-  </div>
-</div>
+  <script>
+    // ─── CONFIG ──────────────────────────────────────────
+    const API = 'https://lusifa-punjabi-hate-detector.hf.space';
 
-<footer>
-  Built with <span>MuRIL + Flask + PyTorch</span> · BTech Final Year Project · 2026
-</footer>
+    // ─── THEME ───────────────────────────────────────────
+    const sunIcon = `<circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>`;
+    const moonIcon = `<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>`;
 
-<script>
-  // ✅ Hugging Face Space ka permanent URL
-  const API = 'https://lusifa-punjabi-hate-detector.hf.space';
+    let isDark = true;
 
-  async function checkServer() {
-    try {
-      const res = await fetch(`${API}/health`, {
-        signal: AbortSignal.timeout(5000),
-        headers: { 'ngrok-skip-browser-warning': '1' }
-      });
-      const data = await res.json();
-      if (data.status === 'running') {
-        document.getElementById('statusDot').className = 'status-dot online';
-        document.getElementById('statusText').textContent = 'Server online · ' + data.device;
+    function toggleTheme() {
+      isDark = !isDark;
+      document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
+      document.getElementById('themeIcon').innerHTML = isDark ? moonIcon : sunIcon;
+    }
+
+    // ─── SERVER STATUS ────────────────────────────────────
+    async function checkServer() {
+      try {
+        const res = await fetch(`${API}/health`, {
+          signal: AbortSignal.timeout(5000),
+          headers: { 'ngrok-skip-browser-warning': '1' }
+        });
+        const data = await res.json();
+        if (data.status === 'running') {
+          document.getElementById('statusDot').className = 'status-dot online';
+          document.getElementById('statusText').textContent = 'Online · ' + data.device;
+        } else throw new Error();
+      } catch {
+        document.getElementById('statusDot').className = 'status-dot offline';
+        document.getElementById('statusText').textContent = 'Offline';
       }
-    } catch {
-      document.getElementById('statusDot').className = 'status-dot offline';
-      document.getElementById('statusText').textContent = 'Server offline';
     }
-  }
+    checkServer();
+    setInterval(checkServer, 10000);
 
-  checkServer();
-  setInterval(checkServer, 10000);
-
-  function setEx(text) {
-    document.getElementById('inputText').value = text;
-    updateCharCount(document.getElementById('inputText'));
-    document.getElementById('resultArea').classList.remove('show');
-    document.getElementById('errorBox').classList.remove('show');
-  }
-
-  function updateCharCount(el) {
-    document.getElementById('charCount').textContent = el.value.length;
-  }
-
-  function showError(msg) {
-    const box = document.getElementById('errorBox');
-    box.textContent = '⚠️ ' + msg;
-    box.classList.add('show');
-    document.getElementById('resultArea').classList.remove('show');
-  }
-
-  function resetBtn() {
-    document.getElementById('analyzeBtn').disabled = false;
-    document.getElementById('btnIcon').textContent = '🔍';
-    document.getElementById('btnText').textContent = 'Analyze Text';
-    document.getElementById('loading').classList.remove('show');
-  }
-
-  async function analyze() {
-    const text = document.getElementById('inputText').value.trim();
-    if (!text || text.length < 2) {
-      showError('Please enter some Punjabi text first.');
-      return;
+    // ─── HELPERS ──────────────────────────────────────────
+    function setEx(text) {
+      document.getElementById('inputText').value = text;
+      updateCharCount(document.getElementById('inputText'));
+      document.getElementById('resultArea').classList.remove('show');
+      document.getElementById('errorBox').classList.remove('show');
+      document.getElementById('inputText').focus();
     }
 
-    document.getElementById('analyzeBtn').disabled = true;
-    document.getElementById('btnIcon').textContent = '⏳';
-    document.getElementById('btnText').textContent = 'Analyzing...';
-    document.getElementById('loading').classList.add('show');
-    document.getElementById('resultArea').classList.remove('show');
-    document.getElementById('errorBox').classList.remove('show');
-    document.getElementById('confFill').style.width = '0';
+    function updateCharCount(el) {
+      document.getElementById('charCount').textContent = el.value.length;
+    }
 
-    try {
-      const res = await fetch(`${API}/predict`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'ngrok-skip-browser-warning': '1'
-        },
-        body: JSON.stringify({ text }),
-        signal: AbortSignal.timeout(60000)
-      });
+    function showError(msg) {
+      const box = document.getElementById('errorBox');
+      document.getElementById('errorMsg').textContent = msg;
+      box.classList.add('show');
+      document.getElementById('resultArea').classList.remove('show');
+    }
 
-      if (res.status === 422) {
-        const err = await res.json();
-        showError('🚫 ' + err.message);
-        resetBtn();
+    function resetBtn() {
+      document.getElementById('analyzeBtn').disabled = false;
+      document.getElementById('btnIcon').textContent = '🔍';
+      document.getElementById('btnText').textContent = 'Analyze Text';
+      document.getElementById('loading').classList.remove('show');
+    }
+
+    // ─── ANALYZE ──────────────────────────────────────────
+    async function analyze() {
+      const text = document.getElementById('inputText').value.trim();
+      if (!text || text.length < 2) {
+        showError('Please enter some Punjabi text first.');
         return;
       }
 
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.error || `Server error: ${res.status}`);
-      }
+      document.getElementById('analyzeBtn').disabled = true;
+      document.getElementById('btnIcon').textContent = '⏳';
+      document.getElementById('btnText').textContent = 'Analyzing…';
+      document.getElementById('loading').classList.add('show');
+      document.getElementById('resultArea').classList.remove('show');
+      document.getElementById('errorBox').classList.remove('show');
+      document.getElementById('confFill').style.width = '0';
 
-      const data = await res.json();
-      showResult(data);
+      try {
+        const res = await fetch(`${API}/predict`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'ngrok-skip-browser-warning': '1' },
+          body: JSON.stringify({ text }),
+          signal: AbortSignal.timeout(60000)
+        });
 
-    } catch (err) {
-      if (err.name === 'TimeoutError') {
-        showError('Request timed out — model is loading, please try again in 30 seconds.');
-      } else if (err.message.includes('fetch') || err.message.includes('Failed')) {
-        showError('Cannot reach server. Space may be starting up — try again in 30 seconds.');
-      } else {
-        showError(err.message);
+        if (res.status === 422) {
+          const err = await res.json();
+          showError(err.message);
+          resetBtn(); return;
+        }
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          throw new Error(err.error || `Server error: ${res.status}`);
+        }
+
+        const data = await res.json();
+        showResult(data);
+
+      } catch (err) {
+        if (err.name === 'TimeoutError') {
+          showError('Request timed out — model is loading, please try again in 30 seconds.');
+        } else if (err.message.includes('fetch') || err.message.includes('Failed')) {
+          showError('Cannot reach server. Space may be starting up — try again in 30s.');
+        } else {
+          showError(err.message);
+        }
       }
+      resetBtn();
     }
 
-    resetBtn();
-  }
+    // ─── SHOW RESULT ──────────────────────────────────────
+    function showResult(data) {
+      const isHate = data.is_hate;
+      const conf = data.confidence;
+      const probs = data.probabilities;
 
-  function showResult(data) {
-    const isHate = data.is_hate;
-    const conf = data.confidence;
-    const probs = data.probabilities;
+      const box = document.getElementById('resultBox');
+      box.className = 'result-box ' + (isHate ? 'hate' : 'safe');
 
-    const box = document.getElementById('resultBox');
-    box.className = 'result-box ' + (isHate ? 'hate' : 'safe');
+      document.getElementById('rIcon').textContent = isHate ? '🚨' : '✅';
+      document.getElementById('rLabel').textContent = isHate ? 'HATE SPEECH DETECTED' : 'SAFE — NON-HATE';
+      document.getElementById('rDesc').textContent = isHate
+        ? 'This text contains hateful or offensive language targeting individuals or groups.'
+        : 'This text appears safe and does not contain hate speech.';
 
-    document.getElementById('rIcon').textContent = isHate ? '🚨' : '✅';
-    document.getElementById('rLabel').textContent = isHate ? 'HATE SPEECH DETECTED' : 'NON-HATE — SAFE';
-    document.getElementById('rDesc').textContent = isHate
-      ? 'This text contains hateful or offensive language targeting individuals or groups.'
-      : 'This text appears safe and does not contain hate speech.';
+      document.getElementById('confText').textContent = (conf * 100).toFixed(1) + '%';
+      document.getElementById('probNH').textContent = ((probs.NON_HATE || 0) * 100).toFixed(1) + '%';
+      document.getElementById('probH').textContent = ((probs.HATE || 0) * 100).toFixed(1) + '%';
 
-    document.getElementById('confText').textContent = (conf * 100).toFixed(1) + '%';
-    document.getElementById('probNH').textContent = ((probs.NON_HATE || 0) * 100).toFixed(1) + '%';
-    document.getElementById('probH').textContent  = ((probs.HATE || 0) * 100).toFixed(1) + '%';
+      document.getElementById('loading').classList.remove('show');
+      document.getElementById('resultArea').classList.add('show');
 
-    document.getElementById('loading').classList.remove('show');
-    document.getElementById('resultArea').classList.add('show');
+      setTimeout(() => {
+        document.getElementById('confFill').style.width = (conf * 100) + '%';
+      }, 120);
+    }
 
-    setTimeout(() => {
-      document.getElementById('confFill').style.width = (conf * 100) + '%';
-    }, 100);
-  }
-
-  document.addEventListener('keydown', e => {
-    if (e.ctrlKey && e.key === 'Enter') analyze();
-  });
-</script>
+    // ─── KEYBOARD SHORTCUT ────────────────────────────────
+    document.addEventListener('keydown', e => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') analyze();
+    });
+  </script>
 </body>
 </html>
