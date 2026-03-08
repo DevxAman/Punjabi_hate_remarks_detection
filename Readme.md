@@ -11,7 +11,7 @@
 
 **A transformer-based hate speech detection system for Punjabi (Gurmukhi script) text, fine-tuned on Google MuRIL — achieving 97.60% accuracy on a custom-curated dataset of 1,384 real social media posts.**
 
-[🤗 Live Demo](https://devxaman-punjabi-hate-detector.hf.space) • [📦 Model on HuggingFace](https://huggingface.co/DevxAman/punjabi-hate-speech-muril) • [🌐 Web App](https://punjabi-guard.vercel.app)
+[🤗 Live Demo](https://github.com/DevxAman/Punjabi_hate_remarks_detection) • [📦 Model on HuggingFace](https://huggingface.co/DevxAman/punjabi-hate-speech-muril) • [🌐 Web App](https://punjabi-guard.vercel.app)
 
 </div>
 
