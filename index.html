@@ -3,230 +3,209 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>PunjabiGuard AI</title>
+<title>PunjabiGuard AI - Pro</title>
 
-<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=JetBrains+Mono&family=Noto+Sans+Gurmukhi&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Noto+Sans+Gurmukhi&display=swap" rel="stylesheet">
 
 <style>
-:root {
-  --bg: #0a0a12;
-  --card: #12121a;
-  --accent: #7c6bff;
-  --accent2: #ff6b8a;
-  --text: #f2f2ff;
-  --muted: #9aa0b5;
-  --safe: #00e5a0;
-  --hate: #ff4d70;
-}
-
-/* BASE */
 body {
   margin:0;
-  font-family: 'Outfit', sans-serif;
-  background: radial-gradient(circle at 20% 20%, rgba(124,107,255,0.1), transparent),
-              radial-gradient(circle at 80% 80%, rgba(255,107,138,0.08), transparent),
-              var(--bg);
-  color: var(--text);
+  font-family:'Outfit',sans-serif;
+  background:#0a0a12;
+  color:#fff;
+  display:flex;
+  height:100vh;
 }
 
-/* CONTAINER */
-.container {
-  max-width: 700px;
-  margin: auto;
-  padding: 40px 20px;
-  text-align: center;
+/* SIDEBAR */
+.sidebar {
+  width:260px;
+  background:#11111a;
+  padding:20px;
+  border-right:1px solid rgba(255,255,255,0.05);
 }
 
-/* TITLE */
-h1 {
-  font-size: 3rem;
-  font-weight: 900;
-  background: linear-gradient(120deg, var(--accent), var(--accent2));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
+.stat {
+  margin:20px 0;
 }
 
-/* CARD */
-.card {
-  margin-top: 40px;
-  padding: 25px;
-  border-radius: 18px;
-  background: var(--card);
-  border: 1px solid rgba(255,255,255,0.08);
-  box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+.stat h2 {
+  margin:0;
+  font-size:1.6rem;
+  color:#7c6bff;
 }
 
-/* TEXTAREA */
-textarea {
-  width: 100%;
-  height: 120px;
-  border-radius: 12px;
-  border: 1px solid rgba(255,255,255,0.1);
-  padding: 15px;
-  background: #0f0f18;
-  color: white;
-  font-size: 1rem;
-  font-family: 'Noto Sans Gurmukhi', sans-serif;
+/* MAIN */
+.main {
+  flex:1;
+  display:flex;
+  flex-direction:column;
 }
 
-textarea:focus {
-  outline: none;
-  border-color: var(--accent);
+/* CHAT */
+.chat {
+  flex:1;
+  padding:20px;
+  overflow-y:auto;
 }
 
-/* BUTTON */
+.msg {
+  margin-bottom:15px;
+  max-width:70%;
+  padding:12px 15px;
+  border-radius:14px;
+}
+
+.user { background:#2a2a40; margin-left:auto; }
+.bot { background:#17172a; }
+
+/* INPUT */
+.input {
+  display:flex;
+  padding:15px;
+  border-top:1px solid rgba(255,255,255,0.05);
+}
+
+input {
+  flex:1;
+  padding:12px;
+  border-radius:10px;
+  border:none;
+  background:#151525;
+  color:white;
+}
+
 button {
-  margin-top: 20px;
-  width: 100%;
-  padding: 15px;
-  border-radius: 12px;
-  border: none;
-  background: linear-gradient(120deg, var(--accent), #9a8bff);
-  color: white;
-  font-weight: bold;
-  cursor: pointer;
-  transition: 0.3s;
+  margin-left:10px;
+  padding:12px 20px;
+  border:none;
+  border-radius:10px;
+  background:#7c6bff;
+  color:white;
+  cursor:pointer;
 }
 
-button:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 10px 30px rgba(124,107,255,0.4);
+/* HIGHLIGHT */
+.toxic {
+  color:#ff4d70;
+  font-weight:600;
 }
-
-/* RESULT */
-.result {
-  margin-top: 20px;
-  padding: 20px;
-  border-radius: 12px;
-  display: none;
-}
-
-.result.show {
-  display: block;
-  animation: pop 0.5s ease;
-}
-
-@keyframes pop {
-  from { opacity:0; transform:scale(0.9); }
-  to { opacity:1; transform:scale(1); }
-}
-
-/* SAFE / HATE */
-.safe { background: rgba(0,229,160,0.1); border:1px solid rgba(0,229,160,0.3); }
-.hate { background: rgba(255,77,112,0.1); border:1px solid rgba(255,77,112,0.3); }
-
-/* BAR */
-.bar {
-  height: 6px;
-  background: #1a1a25;
-  border-radius: 10px;
-  margin-top: 10px;
-  overflow: hidden;
-}
-
-.fill {
-  height: 100%;
-  width: 0;
-  transition: 1s ease;
-  background: linear-gradient(90deg, var(--accent), var(--accent2));
-}
-
-/* LOADING */
-.loading {
-  margin-top: 15px;
-  display: none;
-  font-size: 14px;
-  color: var(--muted);
-}
-
-.loading.show {
-  display: block;
-}
-
 </style>
 </head>
 
 <body>
 
-<div class="container">
+<div class="sidebar">
+  <h2>PunjabiGuard AI</h2>
 
-<h1>PunjabiGuard AI</h1>
+  <div class="stat">
+    <p>Total Checks</p>
+    <h2 id="count">0</h2>
+  </div>
 
-<div class="card">
-
-<textarea id="text" placeholder="Type Punjabi text here..."></textarea>
-
-<button onclick="analyze()">Analyze</button>
-
-<div class="loading" id="loading">Analyzing...</div>
-
-<div class="result" id="result">
-  <h3 id="label"></h3>
-  <p id="desc"></p>
-  <div class="bar"><div class="fill" id="fill"></div></div>
-  <p id="confidence"></p>
+  <div class="stat">
+    <p>Hate Detected</p>
+    <h2 id="hateCount">0</h2>
+  </div>
 </div>
 
+<div class="main">
+
+<div class="chat" id="chat"></div>
+
+<div class="input">
+  <input id="input" placeholder="Type Punjabi text...">
+  <button onclick="send()">Send</button>
 </div>
+
 </div>
 
 <script>
 
 const API = "https://devxaman-punjabi-hate-detector.hf.space";
 
-/* REAL-TIME AI FEEL */
-let timer;
-document.getElementById("text").addEventListener("input", () => {
-  clearTimeout(timer);
-  timer = setTimeout(() => {
-    if (text.value.length > 5) analyze();
-  }, 800);
-});
+let total = 0;
+let hate = 0;
 
-/* ANALYZE */
-async function analyze() {
-  const text = document.getElementById("text").value.trim();
-  if (!text) return;
+/* SEND MESSAGE */
+async function send() {
+  const input = document.getElementById("input");
+  const text = input.value.trim();
+  if(!text) return;
 
-  loading.classList.add("show");
-  result.classList.remove("show");
+  addMessage(text,"user");
+  input.value="";
+
+  total++;
+  updateStats();
+
+  const typing = addMessage("Analyzing...","bot");
 
   try {
-    const res = await fetch(API + "/predict", {
-      method: "POST",
-      headers: {"Content-Type":"application/json"},
-      body: JSON.stringify({text})
+    const res = await fetch(API+"/predict",{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({text})
     });
 
     const data = await res.json();
-    showResult(data);
 
-  } catch (e) {
-    alert("Server error. Try again.");
+    /* STREAM EFFECT */
+    let msg = data.is_hate
+      ? "🚨 Hate detected."
+      : "✅ Safe text.";
+
+    typing.innerHTML = "";
+    streamText(typing,msg);
+
+    if(data.is_hate) hate++;
+    updateStats();
+
+  } catch(e){
+    typing.innerText="Error contacting server.";
   }
-
-  loading.classList.remove("show");
 }
 
-/* SHOW RESULT */
-function showResult(data) {
+/* STREAM TEXT */
+function streamText(el,text){
+  let i=0;
+  let interval=setInterval(()=>{
+    el.innerHTML += text[i];
+    i++;
+    if(i>=text.length) clearInterval(interval);
+  },20);
+}
 
-  const isHate = data.is_hate;
-  const conf = data.confidence;
+/* ADD MESSAGE */
+function addMessage(text,type){
+  const chat=document.getElementById("chat");
+  const div=document.createElement("div");
+  div.className="msg "+type;
 
-  result.className = "result show " + (isHate ? "hate":"safe");
+  if(type==="user"){
+    div.innerText=text;
+  } else {
+    div.innerHTML=highlight(text);
+  }
 
-  label.innerText = isHate ? "🚨 HATE DETECTED" : "✅ SAFE TEXT";
+  chat.appendChild(div);
+  chat.scrollTop=chat.scrollHeight;
+  return div;
+}
 
-  desc.innerText = isHate
-    ? "Toxic or harmful language detected."
-    : "This text is safe.";
+/* HIGHLIGHT TOXIC WORDS */
+function highlight(text){
+  const words=["ਮੂਰਖ","ਕਮੀਨਾ","ਗੰਦਾ"];
+  words.forEach(w=>{
+    text=text.replaceAll(w, `<span class="toxic">${w}</span>`);
+  });
+  return text;
+}
 
-  confidence.innerText = "Confidence: " + (conf*100).toFixed(1) + "%";
-
-  setTimeout(() => {
-    fill.style.width = (conf*100) + "%";
-  },100);
+/* STATS */
+function updateStats(){
+  document.getElementById("count").innerText=total;
+  document.getElementById("hateCount").innerText=hate;
 }
 
 </script>
