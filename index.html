@@ -6,7 +6,7 @@
   <!-- Clerk -->
   <script async crossorigin="anonymous"
     data-clerk-publishable-key="pk_test_YXBwYXJlbnQtY2l2ZXQtMjMuY2xlcmsuYWNjb3VudHMuZGV2JA"
-    src="https://cdn.jsdelivr.net/npm/@clerk/clerk-js@latest/dist/clerk.browser.js">
+    src="https://unpkg.com/@clerk/clerk-js@latest/dist/clerk.js">
   </script>
 
   <style>
@@ -42,7 +42,13 @@ function waitClerk() {
 }
 
 async function init() {
-  const Clerk = await waitClerk();
+  const Clerk = window.Clerk;
+
+  if (!Clerk) {
+    console.error("Clerk not loaded");
+    return;
+  }
+
   await Clerk.load();
 
   if (Clerk.user) {
@@ -54,26 +60,6 @@ async function init() {
   Clerk.addListener(() => {
     if (Clerk.user) showApp();
   });
-}
-
-function showApp() {
-  document.getElementById("auth").style.display = "none";
-  document.getElementById("app").style.display = "block";
-}
-
-async function send() {
-  const text = document.getElementById("input").value;
-
-  const res = await fetch(API + "/predict", {
-    method: "POST",
-    headers: {"Content-Type":"application/json"},
-    body: JSON.stringify({text})
-  });
-
-  const data = await res.json();
-
-  document.getElementById("result").innerText =
-    data.is_hate ? "HATE" : "SAFE";
 }
 
 init();
