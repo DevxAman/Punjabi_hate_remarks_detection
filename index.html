@@ -1,219 +1,284 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PunjabiGuard AI</title>
 
-<title>PunjabiGuard AI</title>
+  <!-- Clerk JS (MUST be before your script) -->
+  <script src="https://cdn.jsdelivr.net/npm/@clerk/clerk-js@latest/dist/clerk.browser.js"></script>
 
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@clerk/clerk-js@latest/dist/clerk.browser.css">
-<script src="https://cdn.jsdelivr.net/npm/@clerk/clerk-js@latest/dist/clerk.browser.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;500;700&family=Noto+Sans+Gurmukhi&display=swap" rel="stylesheet">
 
-<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;500;700&family=Noto+Sans+Gurmukhi&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg:#0a0a12;
+      --card:#12121a;
+      --text:#fff;
+      --accent:#7c6bff;
+      --muted:#9aa0b5;
+    }
 
-<style>
-:root {
-  --bg:#0a0a12;
-  --card:#12121a;
-  --text:#fff;
-  --accent:#7c6bff;
-}
+    body.light {
+      --bg:#f5f5f5;
+      --card:#ffffff;
+      --text:#111;
+    }
 
-.light {
-  --bg:#f5f5f5;
-  --card:#fff;
-  --text:#111;
-}
+    body {
+      margin:0;
+      font-family:'Outfit',sans-serif;
+      background:var(--bg);
+      color:var(--text);
+      display:flex;
+      height:100vh;
+    }
 
-body {
-  margin:0;
-  font-family:'Outfit',sans-serif;
-  background:var(--bg);
-  color:var(--text);
-  display:flex;
-  height:100vh;
-}
+    /* SIDEBAR */
+    .sidebar {
+      width:260px;
+      background:var(--card);
+      padding:20px;
+      display:flex;
+      flex-direction:column;
+      border-right:1px solid rgba(255,255,255,0.05);
+    }
 
-/* SIDEBAR */
-.sidebar {
-  width:260px;
-  background:var(--card);
-  padding:20px;
-  display:flex;
-  flex-direction:column;
-}
+    .logo {
+      font-size:20px;
+      font-weight:700;
+      margin-bottom:10px;
+    }
 
-.logo {
-  font-size:22px;
-  font-weight:700;
-  margin-bottom:20px;
-}
+    .tagline {
+      font-size:12px;
+      color:var(--muted);
+      margin-bottom:20px;
+    }
 
-.toggle {
-  margin-top:auto;
-  cursor:pointer;
-}
+    .user {
+      margin-top:10px;
+      font-size:14px;
+    }
 
-/* MAIN */
-.main {
-  flex:1;
-  display:flex;
-  flex-direction:column;
-}
+    .btn {
+      margin-top:10px;
+      padding:8px;
+      border:none;
+      border-radius:8px;
+      background:var(--accent);
+      color:#fff;
+      cursor:pointer;
+    }
 
-/* CHAT */
-.chat {
-  flex:1;
-  overflow:auto;
-  padding:20px;
-}
+    .toggle {
+      margin-top:auto;
+      cursor:pointer;
+      font-size:14px;
+      color:var(--muted);
+    }
 
-.msg {
-  max-width:70%;
-  padding:12px;
-  border-radius:12px;
-  margin-bottom:10px;
-}
+    /* MAIN */
+    .main {
+      flex:1;
+      display:flex;
+      flex-direction:column;
+    }
 
-.user { background:#2c2c45; margin-left:auto; }
-.bot { background:#1a1a2b; }
+    /* CHAT */
+    .chat {
+      flex:1;
+      overflow:auto;
+      padding:20px;
+    }
 
-/* INPUT */
-.input {
-  display:flex;
-  padding:10px;
-  border-top:1px solid #222;
-}
+    .msg {
+      max-width:70%;
+      padding:12px 14px;
+      border-radius:12px;
+      margin-bottom:10px;
+      font-size:14px;
+    }
 
-input {
-  flex:1;
-  padding:12px;
-  border-radius:10px;
-  border:none;
-  background:#1a1a2a;
-  color:white;
-}
+    .user-msg {
+      background:#2c2c45;
+      margin-left:auto;
+    }
 
-button {
-  margin-left:10px;
-  padding:12px 20px;
-  background:var(--accent);
-  border:none;
-  border-radius:10px;
-  color:white;
-  cursor:pointer;
-}
+    .bot-msg {
+      background:#1a1a2b;
+    }
 
-/* AUTH */
-#auth {
-  display:flex;
-  justify-content:center;
-  align-items:center;
-  height:100vh;
-}
-</style>
+    /* INPUT */
+    .input-area {
+      display:flex;
+      padding:15px;
+      border-top:1px solid rgba(255,255,255,0.05);
+    }
+
+    input {
+      flex:1;
+      padding:12px;
+      border-radius:10px;
+      border:none;
+      background:#1a1a2a;
+      color:white;
+      font-family:'Noto Sans Gurmukhi',sans-serif;
+    }
+
+    button.send {
+      margin-left:10px;
+      padding:12px 20px;
+      border:none;
+      border-radius:10px;
+      background:var(--accent);
+      color:white;
+      cursor:pointer;
+    }
+
+    /* AUTH SCREEN */
+    #auth {
+      width:100%;
+      height:100vh;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+    }
+  </style>
 </head>
 
 <body>
 
+<!-- AUTH -->
 <div id="auth"></div>
 
-<div id="app" style="display:none;">
-  
+<!-- APP -->
+<div id="app" style="display:none; width:100%;">
+
   <div class="sidebar">
     <div class="logo">🤖 PunjabiGuard AI</div>
+    <div class="tagline">MuRIL Powered • Hate Detection</div>
 
-    <div id="user"></div>
+    <div id="userInfo" class="user"></div>
+
+    <button class="btn" onclick="signOut()">Logout</button>
 
     <div class="toggle" onclick="toggleTheme()">🌙 Toggle Theme</div>
   </div>
 
   <div class="main">
-
     <div class="chat" id="chat"></div>
 
-    <div class="input">
-      <input id="input" placeholder="Type Punjabi text...">
-      <button onclick="send()">Send</button>
+    <div class="input-area">
+      <input id="input" placeholder="Type Punjabi text..." />
+      <button class="send" onclick="send()">Send</button>
     </div>
-
   </div>
 
 </div>
 
 <script>
-const CLERK_PUBLISHABLE_KEY = "pk_test_YXBwYXJlbnQtY2l2ZXQtMjMuY2xlcmsuYWNjb3VudHMuZGV2JA";
+/* ========================= */
+/* CONFIG */
+/* ========================= */
+
+const CLERK_PUBLISHABLE_KEY = "pk_test_YXBwYXJlbnQtY2l2ZXQtMjMuY2xlcmsuYWNjb3VudHMuZGV2JA"; // 🔥 REPLACE THIS
 const API = "https://devxaman-punjabi-hate-detector.hf.space";
 
+/* ========================= */
 /* INIT CLERK */
-window.Clerk.load({
-  publishableKey: CLERK_PUBLISHABLE_KEY
-}).then(() => {
+/* ========================= */
 
-  if (!Clerk.user) {
-    Clerk.mountSignIn(document.getElementById("auth"));
+async function initClerk() {
+  const Clerk = window.Clerk;
+
+  if (!Clerk) {
+    console.error("Clerk not loaded");
+    return;
+  }
+
+  await Clerk.load({
+    publishableKey: CLERK_PUBLISHABLE_KEY
+  });
+
+  if (Clerk.user) {
+    showApp();
   } else {
-    startApp();
+    Clerk.mountSignIn(document.getElementById("auth"));
   }
 
   Clerk.addListener(() => {
-    if (Clerk.user) startApp();
+    if (Clerk.user) showApp();
   });
+}
 
-});
+initClerk();
 
-/* START APP */
-function startApp() {
+/* ========================= */
+/* SHOW APP */
+/* ========================= */
+
+function showApp() {
   document.getElementById("auth").style.display = "none";
   document.getElementById("app").style.display = "flex";
 
-  document.getElementById("user").innerHTML =
-    `<p>👤 ${Clerk.user.firstName || "User"}</p>
-     <button onclick="Clerk.signOut()">Logout</button>`;
+  const user = window.Clerk.user;
+
+  document.getElementById("userInfo").innerHTML =
+    `<p>👤 ${user?.firstName || "User"}</p>`;
 }
 
-/* SEND MESSAGE */
+/* ========================= */
+/* CHAT FUNCTION */
+/* ========================= */
+
 async function send() {
   const input = document.getElementById("input");
   const text = input.value.trim();
   if (!text) return;
 
-  addMsg(text,"user");
-  input.value="";
+  addMessage(text, "user-msg");
+  input.value = "";
 
-  const typing = addMsg("Analyzing...","bot");
+  const botMsg = addMessage("Analyzing...", "bot-msg");
 
   try {
-    const res = await fetch(API+"/predict",{
-      method:"POST",
-      headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({text})
+    const res = await fetch(API + "/predict", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text })
     });
 
     const data = await res.json();
 
-    typing.innerText = data.is_hate
+    botMsg.innerText = data.is_hate
       ? "🚨 Hate detected"
       : "✅ Safe text";
 
-  } catch {
-    typing.innerText = "Server error";
+  } catch (e) {
+    botMsg.innerText = "Server error";
   }
 }
 
-/* ADD MESSAGE */
-function addMsg(text,type){
-  const div=document.createElement("div");
-  div.className="msg "+type;
-  div.innerText=text;
-  chat.appendChild(div);
-  chat.scrollTop=chat.scrollHeight;
+/* ========================= */
+/* UI HELPERS */
+/* ========================= */
+
+function addMessage(text, cls) {
+  const div = document.createElement("div");
+  div.className = "msg " + cls;
+  div.innerText = text;
+  document.getElementById("chat").appendChild(div);
+  document.getElementById("chat").scrollTop = 999999;
   return div;
 }
 
-/* THEME */
-function toggleTheme(){
+function toggleTheme() {
   document.body.classList.toggle("light");
+}
+
+function signOut() {
+  window.Clerk.signOut();
 }
 </script>
 
